@@ -34,7 +34,7 @@ from diffusers import (
     DPMSolverMultistepScheduler,
     EulerAncestralDiscreteScheduler,
     EulerDiscreteScheduler,
-    #HeunDiscreteScheduler,
+    HeunDiscreteScheduler,
     LDMTextToImagePipeline,
     LMSDiscreteScheduler,
     PNDMScheduler,
