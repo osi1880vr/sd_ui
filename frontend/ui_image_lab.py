@@ -20,9 +20,6 @@ import backend.interrogate
 from backend.guess_prompt import get_prompt_guess_img
 from backend.hypernetworks.modules import images
 from backend.sdv2.superresolution import run_sr
-from backend.lavis_interrogate import run
-
-
 #from volta_accelerate import convert_to_onnx, convert_to_trt
 gs = singleton
 
@@ -100,10 +97,15 @@ class ImageLab():  # for signaling, could be a QWidget  too
         self.imageLab.w.selectA.clicked.connect(self.selected_model_a)
         self.imageLab.w.selectB.clicked.connect(self.selected_model_b)
         self.imageLab.w.Merge.clicked.connect(self.start_merge)
+        self.imageLab.w.MergeEBL.clicked.connect(self.start_ebl_merge)
         self.imageLab.w.run_aestetic_prediction.clicked.connect(self.aestetic_prediction)
         self.imageLab.w.aestetics_prediction_output.clicked.connect(self.set_aestetic_prediction_output)
+        self.imageLab.w.alpha.valueChanged.connect(self.update_alpha)
+        self.imageLab.w.alphaNew.valueChanged.connect(self.update_alpha)
         self.imageLab.w.select_interrogation_output_folder.clicked.connect(self.set_interrogation_output_folder)
         self.imageLab.w.run_interrogation.clicked.connect(self.signal_run_interrogation)
+        self.imageLab.w.selected_model.clicked.connect(self.select_accel_model)
+        self.imageLab.w.run_volta_accel.clicked.connect(self.signal_run_volta_accel)
         self.imageLab.w.upscale_20.clicked.connect(self.run_upscale_20)
 
 
@@ -145,12 +147,6 @@ class ImageLab():  # for signaling, could be a QWidget  too
         self.signals.run_interrogation.emit()
 
     def run_interrogation(self, progress_callback=False):
-
-        run()
-        return
-
-
-
         keep_folder_structure = self.imageLab.w.keep_folder_structure.isChecked()
         copy_image = self.imageLab.w.copy_image.isChecked()
         copy_info_text = self.imageLab.w.copy_info_text.isChecked()
@@ -173,7 +169,7 @@ class ImageLab():  # for signaling, could be a QWidget  too
                         interrogate_caption = ''
                         if interrogate:
                             print(type(image))
-                            #interrogate_caption = interrogator.generate_caption(image)
+                            interrogate_caption = interrogator.generate_caption(image)
                             print(interrogate_caption)
                         prompt_guess = ''
                         if guess_prompt:

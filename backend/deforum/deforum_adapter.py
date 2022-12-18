@@ -26,6 +26,7 @@ from backend.utils import sampleToImage, encoded_to_torch_image, image_path_to_t
     get_conditionings, torch_image_to_latent, get_prompts_data
 from backend.ddim_simplified import DDIMSampler_simple
 from backend.torch_gc import torch_gc
+from ldm_deforum.modules.embedding_managerpt import EmbeddingManager
 from ldm_v2.util import instantiate_from_config
 from backend.hypernetworks import hypernetwork
 import backend.hypernetworks.modules.sd_hijack
@@ -68,6 +69,7 @@ class DeforumSix:
         self.root = None
         self.args = None
         self.anim_args = None
+        # self.parent = parent
         self.device = choose_torch_device()
         self.full_precision = False
         self.prev_seamless = False
@@ -197,9 +199,9 @@ class DeforumSix:
             if 'num_heads' in config.model['params']['unet_config']['params']:
                 gs.model_version = '1.5'
             elif 'num_head_channels' in config.model['params']['unet_config']['params']:
-                gs.model_version = '2.x'
+                gs.model_version = '2.0'
             if config.model['params']['conditioning_key'] == 'hybrid-adm':
-                gs.model_version = '2.x'
+                gs.model_version = '2.0'
             if 'parameterization' in config.model['params']:
                 gs.model_resolution = 768
             else:
@@ -260,7 +262,7 @@ class DeforumSix:
 
 
             if gs.model_version == '1.5':
-                self.run_post_load_model_generation_specifics()
+              self.run_post_load_model_generation_specifics()
 
             gs.models["sd"].eval()
 

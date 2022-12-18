@@ -68,3 +68,4 @@ model:
 
     cond_stage_config:
       target: ldm.modules.encoders.modules.FrozenCLIPEmbedder
+model_version: "1.5"
