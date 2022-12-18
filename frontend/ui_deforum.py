@@ -128,6 +128,15 @@ class Deforum_UI(QObject):
                                          normalize_prompt_weights=self.params.normalize_prompt_weights,
                                          lowmem=self.params.lowmem)
 
+    def set_multi_dim_seed(self):
+        if self.params.multi_dim_seed_mode == 'iter':
+            self.params.seed += 1
+        elif self.params.multi_dim_seed_mode == 'fixed':
+            pass  # always keep seed the same
+        else:
+            self.params.seed = random.randint(0, 2**32 - 1)
+
+
 
     def multi_dim_loop(self):
         ints_vals=['W','H','seed','steps', 'n_batch','n_samples','mean_scale','var_scale','exposure_scale','exposure_target','colormatch_n_colors', 'ignore_sat_weight','clip_scale','aesthetics_scale','cutn', 'init_mse_scale', 'blue_scale',]
@@ -172,6 +181,7 @@ class Deforum_UI(QObject):
                         value = bool(value)
                     self.params.__dict__[name] = value
                 self.params.prompts = work_prompt
+                self.set_multi_dim_seed()
                 self.run_it()
 
 
@@ -201,12 +211,7 @@ class Deforum_UI(QObject):
 
         gs.karras = self.parent.widgets[self.parent.current_widget].w.karras.isChecked()
 
-        ##print(self.params.translation_x)
-        ##print(f"updated parameters to: {params}")
         model_killer(keep='sd')
-        #print(gs.models)
-        #if "inpaint" in gs.models:
-        #    del gs.models["inpaint"]
 
         if self.params.with_inpaint == True: # todo what is this for?
             self.parent.params.advanced = True
@@ -218,9 +223,7 @@ class Deforum_UI(QObject):
                 self.parent.render_index = index
 
         self.set_aesthetics()
-        #gs.aesthetic_embedding_path = os.path.join(gs.system.aesthetic_gradients_dir, self.parent.widgets[self.parent.current_widget].w.aesthetic_embedding.currentText())
-        #if gs.aesthetic_embedding_path == 'None':
-        #    gs.aesthetic_embedding_path = None
+
         seed = random.randint(0, 2 ** 32 - 1)
 
         plotting = self.params.plotting

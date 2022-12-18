@@ -820,11 +820,6 @@
                    </item>
                    <item>
                     <property name="text">
-                     <string>DPM Ancestral</string>
-                    </property>
-                   </item>
-                   <item>
-                    <property name="text">
                      <string>DPMPP SDE</string>
                     </property>
                    </item>
@@ -3169,6 +3164,32 @@
                <widget class="QCheckBox" name="multi_dim_prompt">
                 <property name="text">
                  <string>Multi Dim Prompt</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="6">
+               <widget class="QComboBox" name="multi_dim_seed_behavior">
+                <item>
+                 <property name="text">
+                  <string>fixed</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>iter</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>random</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="5" column="4" colspan="2">
+               <widget class="QLabel" name="label_82">
+                <property name="text">
+                 <string>Multi Dim Seed Mode</string>
                 </property>
                </widget>
               </item>

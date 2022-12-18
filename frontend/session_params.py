@@ -257,6 +257,7 @@ class SessionParams():
         return_type = self.parent.widgets[widget].w.return_type.currentText()
         keyframes = self.parent.widgets[widget].w.keyframes.toPlainText()
         multi_dim_prompt = self.parent.widgets[widget].w.multi_dim_prompt.isChecked()
+        multi_dim_seed_mode = self.parent.widgets[widget].w.multi_dim_seed_behavior.currentText()
 
         self.params = {             # todo make this a one step thing not two steps
             # Basic Params
@@ -373,7 +374,8 @@ class SessionParams():
             "gradient_pass": gradient_pass,
             "return_type": return_type,
             "keyframes": keyframes,
-            "multi_dim_prompt": multi_dim_prompt
+            "multi_dim_prompt": multi_dim_prompt,
+            "multi_dim_seed_mode": multi_dim_seed_mode
         }
 
         self.params = SimpleNamespace(**self.params)
