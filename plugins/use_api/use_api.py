@@ -70,11 +70,11 @@ class aiNodesPlugin():
         self.layout.addWidget(self.parent.urledit)
         ui_model_chooser.ModelChooser_UI.set_model = self.parent.ui_deforum.set_model
         try:
-            self.parent.path_setup.w.activateModel.disconnect()
+            self.parent.system_setup.w.activateModel.disconnect()
         except:
             pass
-        self.parent.path_setup.w.activateModel.clicked.connect(self.parent.ui_deforum.set_model)
-        #self.parent.path_setup.w.reloadModelList.clicked.connect(self.load_folder_content)
+        self.parent.system_setup.w.activateModel.clicked.connect(self.parent.ui_deforum.set_model)
+        #self.parent.system_setup.w.reloadModelList.clicked.connect(self.load_folder_content)
 
         self.widget.show()
         #self.parent.ui_deforum = Deforum_UI(self.parent)
@@ -176,7 +176,7 @@ class DeforumAPI(QObject):
                                          )
 
     def run_deforum_six_txt2img(self, progress_callback=None, plotting=True):
-
+        gs.stop_all = False
         params = self.parent.sessionparams.update_params()
         print(f"updated tyutya to: {params}")
         if "inpaint" in gs.models:
@@ -424,7 +424,7 @@ class DeforumAPI(QObject):
         init_image = "outpaint.png"
         gs.T = self.parent.unicontrol.w.gradient_steps.value()
         gs.lr = self.parent.unicontrol.w.gradient_scale.value() / 1000000000
-        gs.aesthetic_embedding_path = os.path.join(gs.system.aesthetic_gradients,
+        gs.aesthetic_embedding_path = os.path.join(gs.system.aesthetic_gradients_dir,
                                                    self.parent.unicontrol.w.aesthetic_embedding.currentText())
         if params == None:
             params = self.parent.params
@@ -472,7 +472,7 @@ class DeforumAPI(QObject):
         self.parent.threadpool.start(worker)
     def set_model(self):
         self.url = QtCore.QUrl(f"{self.parent.urledit.text()}/api/v1/txttoimg/change_model")
-        print(os.path.join(gs.system.customModels, self.parent.path_setup.w.modelList.currentText()))
+        print(os.path.join(gs.system.custom_models_dir, self.parent.path_setup.w.modelList.currentText()))
         params = {
             "ckpt": str(self.parent.path_setup.w.modelList.currentText())
         }
@@ -582,5 +582,3 @@ def draw_grid_annotations(im, width, height, hor_texts, ver_texts, W, H, params)
         draw_texts(d, x, y, ver_texts[row])
 
     return result
-
-

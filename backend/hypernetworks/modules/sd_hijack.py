@@ -7,16 +7,16 @@ from torch.nn.functional import silu
 from transformers import CLIPModel, CLIPTokenizer, CLIPTextModel, CLIPProcessor
 
 import backend.hypernetworks.modules.textual_inversion.textual_inversion
-import ldm_deforum.modules.attention
-import ldm_deforum.modules.diffusionmodules.model
-import ldm_deforum.modules.diffusionmodules.util
-from backend.devices import torch_gc
+import ldm.modules.attention
+import ldm.modules.diffusionmodules.model
+import ldm.modules.diffusionmodules.util
+from backend.devices import torch_gc, choose_torch_device
 from backend.hypernetworks.modules import prompt_parser, sd_hijack_optimizations
 
-ddim_timesteps = ldm_deforum.modules.diffusionmodules.util.make_ddim_timesteps
-attention_CrossAttention_forward = ldm_deforum.modules.attention.CrossAttention.forward
-diffusionmodules_model_nonlinearity = ldm_deforum.modules.diffusionmodules.model.nonlinearity
-diffusionmodules_model_AttnBlock_forward = ldm_deforum.modules.diffusionmodules.model.AttnBlock.forward
+ddim_timesteps = ldm.modules.diffusionmodules.util.make_ddim_timesteps
+attention_CrossAttention_forward = ldm.modules.attention.CrossAttention.forward
+diffusionmodules_model_nonlinearity = ldm.modules.diffusionmodules.model.nonlinearity
+diffusionmodules_model_AttnBlock_forward = ldm.modules.diffusionmodules.model.AttnBlock.forward
 from backend.singleton import singleton
 gs = singleton
 gs.embeddings_path = ""
@@ -29,45 +29,47 @@ gs.embeddings_path = ""
 def apply_optimizations():
     undo_optimizations()
 
-    ldm_deforum.modules.diffusionmodules.model.nonlinearity = silu
+    ldm.modules.diffusionmodules.model.nonlinearity = silu
 
     """if cmd_opts.force_enable_xformers or (cmd_opts.xformers and shared.xformers_available and torch.version.cuda and (6, 0) <= torch.cuda.get_device_capability(shared.device) <= (9, 0)):
         print("Applying xformers cross attention optimization.")
-        ldm_deforum.modules.attention.CrossAttention.forward = sd_hijack_optimizations.xformers_attention_forward
-        ldm_deforum.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.xformers_attnblock_forward
+        ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.xformers_attention_forward
+        ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.xformers_attnblock_forward
     elif cmd_opts.opt_split_attention_v1:
         print("Applying v1 cross attention optimization.")
-        ldm_deforum.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward_v1
+        ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward_v1
     elif not cmd_opts.disable_opt_split_attention and (cmd_opts.opt_split_attention_invokeai or not torch.cuda.is_available()):
         if not invokeAI_mps_available and shared.device.type == 'mps':
             print("The InvokeAI cross attention optimization for MPS requires the psutil package which is not installed.")
             print("Applying v1 cross attention optimization.")
-            ldm_deforum.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward_v1
+            ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward_v1
         else:
             print("Applying cross attention optimization (InvokeAI).")
-            ldm_deforum.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward_invokeAI
+            ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward_invokeAI
     elif not cmd_opts.disable_opt_split_attention and (cmd_opts.opt_split_attention or torch.cuda.is_available()):
         print("Applying cross attention optimization (Doggettx).")
-        ldm_deforum.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward
-        ldm_deforum.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.cross_attention_attnblock_forward"""
+        ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward
+        ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.cross_attention_attnblock_forward"""
     print("Applying xformers cross attention optimization.")
-    ldm_deforum.modules.attention.CrossAttention.forward = sd_hijack_optimizations.xformers_attention_forward
-    ldm_deforum.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.xformers_attnblock_forward
+    if gs.system.xformer == True:
+        if not gs.xformers_not_available:
+            ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.xformers_attention_forward
+            ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.xformers_attnblock_forward
 
     #print('hijack util')
-    #ldm_deforum.modules.diffusionmodules.util.make_ddim_timesteps = hijack_util.make_ddim_timesteps
+    #ldm.modules.diffusionmodules.util.make_ddim_timesteps = hijack_util.make_ddim_timesteps
     #print(hijack_util.make_ddim_timesteps)
-    #print(ldm_deforum.modules.diffusionmodules.util.make_ddim_timesteps)
+    #print(ldm.modules.diffusionmodules.util.make_ddim_timesteps)
 
 
 def undo_optimizations():
     from backend.hypernetworks import hypernetwork
 
-    ldm_deforum.modules.attention.CrossAttention.forward = hypernetwork.attention_CrossAttention_forward
-    ldm_deforum.modules.diffusionmodules.model.nonlinearity = diffusionmodules_model_nonlinearity
-    ldm_deforum.modules.diffusionmodules.model.AttnBlock.forward = diffusionmodules_model_AttnBlock_forward
+    ldm.modules.attention.CrossAttention.forward = hypernetwork.attention_CrossAttention_forward
+    ldm.modules.diffusionmodules.model.nonlinearity = diffusionmodules_model_nonlinearity
+    ldm.modules.diffusionmodules.model.AttnBlock.forward = diffusionmodules_model_AttnBlock_forward
 
-    #ldm_deforum.modules.diffusionmodules.util.make_ddim_timesteps = ddim_timesteps
+    #ldm.modules.diffusionmodules.util.make_ddim_timesteps = ddim_timesteps
 
 
 def get_target_prompt_token_count(token_count):
@@ -81,13 +83,19 @@ class StableDiffusionModelHijack:
     circular_enabled = False
     clip = None
 
-    embedding_db = backend.hypernetworks.modules.textual_inversion.textual_inversion.EmbeddingDatabase(gs.embeddings_path)
+    embedding_db = backend.hypernetworks.modules.textual_inversion.textual_inversion.EmbeddingDatabase(gs.system.textual_inversion_dir)
 
     def hijack(self, m):
 
-        model_embeddings = gs.models["sd"].cond_stage_model.transformer.text_model.embeddings
+        #model_embeddings = gs.models["sd"].cond_stage_model.transformer.text_model.embeddings
 
+
+        model_embeddings = gs.models["sd"].cond_stage_model.transformer.text_model.embeddings
         model_embeddings.token_embedding = EmbeddingsWithFixes(model_embeddings.token_embedding, self)
+        gs.models["sd"].cond_stage_model = FrozenCLIPEmbedderWithCustomWords(gs.models["sd"].cond_stage_model, self)
+
+
+        #model_embeddings.token_embedding = EmbeddingsWithFixes(model_embeddings.token_embedding, self)
         #gs.models["sd"].cond_stage_model = FrozenCLIPEmbedderWithCustomWords(gs.models["sd"].cond_stage_model, self)
 
         #self.clip = gs.models["sd"].cond_stage_model
@@ -361,7 +369,7 @@ class FrozenCLIPEmbedderWithCustomWords(torch.nn.Module):
         if not gs.use_old_emphasis_implementation:
             remade_batch_tokens = [[self.wrapped.tokenizer.bos_token_id] + x[:75] + [self.wrapped.tokenizer.eos_token_id] for x in remade_batch_tokens]
             batch_multipliers = [[1.0] + x[:75] + [1.0] for x in batch_multipliers]
-
+        device = choose_torch_device()
         tokens = torch.asarray(remade_batch_tokens).to(device)
         outputs = self.wrapped.transformer(input_ids=tokens, output_hidden_states=-gs.CLIP_stop_at_last_layers)
 
@@ -369,7 +377,7 @@ class FrozenCLIPEmbedderWithCustomWords(torch.nn.Module):
             z = outputs.hidden_states[-gs.CLIP_stop_at_last_layers]
             z = self.wrapped.transformer.text_model.final_layer_norm(z)
         else:
-            z = outputs.last_hidden_state
+            z = outputs[0]
 
         # restoring original mean is likely not correct, but it seems to work well to prevent artifacts that happen otherwise
         batch_multipliers_of_same_length = [x + [1.0] * (75 - len(x)) for x in batch_multipliers]

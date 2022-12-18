@@ -23,7 +23,10 @@ def torch_gc():
 def kill_model(model, device):
     print('kill:', model)
     if device != 'cpu':
-        gs.models[model].to('cpu')
+        try:
+            gs.models[model].to('cpu')
+        except:
+            pass
     del gs.models[model]
     torch_gc()
 
@@ -68,12 +71,12 @@ def load_custom_model(model, device='cuda'):
     if "sd" not in gs.models:
         if gs.models['custom_model_name'] != model:
             gs.models['custom_model_name'] = model
-            gs.system.sdPath = model
+            gs.system.sd_model_file = model
 
 
 def load_model_from_config(config, ckpt, device='cuda', verbose=False):
     config = 'configs/stable-diffusion/v1-inference-a.yaml'
-    #ckpt = gs.system.sdPath
+    #ckpt = gs.system.sd_model_file
     config = OmegaConf.load(config)
     config.model.params.cond_stage_config.params.T = 0
     config.model.params.cond_stage_config.params.lr = 0.0
