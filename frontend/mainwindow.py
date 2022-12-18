@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
         self.thumbs = ThumbsUI()
         self.canvas = PaintUI(self)
         self.setCentralWidget(self.canvas)
-        self.setWindowTitle("aiNodes - Still Mode")
+        self.setWindowTitle("aiPixels - Still Mode")
         self.timeline = Timeline(self)
         self.animKeyEditor = AnimKeyEditor()
 
@@ -688,7 +688,7 @@ class MainWindow(QMainWindow):
     def load_last_prompt(self):
         data = ''
         try:
-            with open('configs/ainodes/last_prompt.txt', 'r') as file:
+            with open('configs/aiPixels/last_prompt.txt', 'r') as file:
                 data = file.read().replace('\n', '')
         except:
             pass

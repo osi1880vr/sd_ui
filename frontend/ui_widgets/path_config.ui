@@ -540,7 +540,7 @@
                <item>
                 <widget class="QLineEdit" name="settingsPath">
                  <property name="text">
-                  <string>configs/ainodes/webui_settings.json</string>
+                  <string>configs/aiPixels/webui_settings.json</string>
                  </property>
                 </widget>
                </item>

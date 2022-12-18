@@ -1,6 +1,6 @@
-"""This is an example plugin file that you can use to build your own plugins for aiNodes.
+"""This is an example plugin file that you can use to build your own plugins for aiPixels.
 
-Welcome to aiNodes. Please refer to PySide 6.4 documentation for UI functions.
+Welcome to aiPixels. Please refer to PySide 6.4 documentation for UI functions.
 
 Please also note the following features at your disposal by default:
 DeforumSix
@@ -28,7 +28,7 @@ from backend.singleton import singleton
 gs = singleton
 
 
-class aiNodesPlugin():
+class aiPixelsPlugin():
     def __init__(self, parent):
         self.parent = parent
 

@@ -26,7 +26,7 @@
     "realesrgan_dir": "src/realesrgan",
     "realesrgan_anime_model_file": "data/models/support/upscale/RealESRGAN_x4plus_anime_6B.pth",
     "ffmpeg_file": "C:\\tools\\ffmpeg\\bin\\ffmpeg.exe",
-    "settingsPath": "configs/ainodes/webui_settings.json",
+    "settingsPath": "configs/aiPixels/webui_settings.json",
     "out_dir": "data/output",
     "gpu": 0,
     "gfpgan_cpu": false,

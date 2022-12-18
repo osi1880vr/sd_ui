@@ -133,12 +133,12 @@ ldm/modules/attention.py
 *.ckpt
 *.sha256
 *.mp4
-/configs/ainodes/last_prompt.txt
-/configs/ainodes/prompt_history.txt
-/configs/ainodes/prompt_history_raw.txt
-configs/ainodes - Copy/last_prompt.txt
-configs/ainodes - Copy/settings.json
-configs/ainodes/settings.json
+/configs/aiPixels/last_prompt.txt
+/configs/aiPixels/prompt_history.txt
+/configs/aiPixels/prompt_history_raw.txt
+configs/aiPixels - Copy/last_prompt.txt
+configs/aiPixels - Copy/settings.json
+configs/aiPixels/settings.json
 /output/*
 /outputs/*
 /.idea/codeStyles/
@@ -160,7 +160,7 @@ models/custom/xscifiglam-3000.yaml
 models/custom/futurism_futtt.yaml
 models/768-v-ema.yaml
 models/512-base-ema.yaml
-.idea/ainodes-pyside.iml
+.idea/aiPixels-pyside.iml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/inspectionProfiles/Project_Default.xml
 .idea/misc.xml

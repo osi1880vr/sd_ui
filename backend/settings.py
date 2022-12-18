@@ -8,15 +8,15 @@ gs = singleton
 
 
 def load_settings_json():
-    f = open("configs/ainodes/default_settings.json", "r")
+    f = open("configs/aiPixels/default_settings.json", "r")
     settings = json.loads(f.read())
     settings = SimpleNamespace(**settings)
     gs.diffusion = SimpleNamespace(**settings.diffusion)
     gs.system = SimpleNamespace(**settings.system)
 
-    settingsfile = 'configs/ainodes/settings.json'
+    settingsfile = 'configs/aiPixels/settings.json'
     if os.path.exists(settingsfile):
-        f = open("configs/ainodes/settings.json", "r")
+        f = open("configs/aiPixels/settings.json", "r")
         user_settings = json.loads(f.read())
         user_settings = SimpleNamespace(**user_settings)
         user_diffusion = SimpleNamespace(**user_settings.diffusion)
@@ -31,7 +31,7 @@ def load_settings_json():
 
 def load_default_settings_json():
     load_settings_json()
-    #f = open("configs/ainodes/default_settings.json", "r")
+    #f = open("configs/aiPixels/default_settings.json", "r")
     #settings = json.loads(f.read())
     #settings = SimpleNamespace(**settings)
     #gs.diffusion = SimpleNamespace(**settings.diffusion)
@@ -46,7 +46,7 @@ def save_settings_json():
         "diffusion": json.loads(diffusion)
     })
 
-    with open("configs/ainodes/settings.json", "w") as write_file:
+    with open("configs/aiPixels/settings.json", "w") as write_file:
         json.dump({
             "system": json.loads(system),
             "diffusion": json.loads(diffusion)
@@ -56,7 +56,7 @@ def save_settings_json():
 
 
 def load_windows_settings():
-    filename = "configs/ainodes/windows_views.json"
+    filename = "configs/aiPixels/windows_views.json"
     if path.exists(filename):
         try:
             f = open(filename, "r")
@@ -70,6 +70,6 @@ def load_windows_settings():
 
 
 def save_windows_settings():
-    filename = "configs/ainodes/windows_views.json"
+    filename = "configs/aiPixels/windows_views.json"
     with open(filename, "w") as write_file:
         json.dump(gs.windows_views, write_file, indent=4)

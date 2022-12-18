@@ -92,7 +92,7 @@ def git_clone(url, dir, name, commithash=None):
 def version_check(commit):
     try:
         import requests
-        commits = requests.get('https://github.com/osi1880vr/ainodes-pyside-dev/branches/dev').json()
+        commits = requests.get('https://github.com/osi1880vr/aiPixels-pyside-dev/branches/dev').json()
         if commit != "<none>" and commits['commit']['sha'] != commit:
             print("--------------------------------------------------------")
             print("| You are not up to date with the most recent release. |")

@@ -28,7 +28,7 @@ def run_app():
 
     mainWindow = MainWindow()
 
-    mainWindow.setWindowTitle("aiNodes")
+    mainWindow.setWindowTitle("aiPixels")
     mainWindow.setWindowIcon(QIcon('frontend/main/splash_2.png'))
     with open(sshFile,"r") as fh:
         mainWindow.setStyleSheet(fh.read())
