@@ -160,6 +160,7 @@ class Deforum_UI(QObject):
             print(args_dict)
             pairs = [[(k, v) for v in args_dict[k]] for k in args_dict]
             arg_combinations = list(itertools.product(*pairs))
+            print(arg_combinations)
             for set in arg_combinations:
                 for arg in set:
                     name = arg[0]
