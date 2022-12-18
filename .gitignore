@@ -135,9 +135,7 @@ frontend/example_calculator/.DS_Store
 /configs/aiPixels/last_prompt.txt
 /configs/aiPixels/prompt_history.txt
 /configs/aiPixels/prompt_history_raw.txt
-configs/aiPixels - Copy/last_prompt.txt
-configs/aiPixels - Copy/settings.json
-configs/aiPixels/settings.json
+/configs/aiPixels/settings.json
 /output/*
 /outputs/*
 /.idea/codeStyles/
