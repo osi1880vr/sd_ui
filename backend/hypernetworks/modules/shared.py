@@ -3,22 +3,13 @@ import datetime
 import json
 import os
 import sys
-from collections import OrderedDict
 
-#import gradio as gr
+# import gradio as gr
 import tqdm
 
-import backend.hypernetworks.modules.artists
-import backend.hypernetworks.modules.interrogate
-import backend.hypernetworks.modules.memmon
-import backend.hypernetworks.modules.sd_models
-import backend.hypernetworks.modules.styles
 import backend.hypernetworks.modules.devices as devices
-from backend.hypernetworks.modules import sd_samplers, sd_models, localization
-from backend.hypernetworks import hypernetwork
 from backend.hypernetworks import hyper_share
-
-
+from backend.hypernetworks import hypernetwork
 from backend.hypernetworks.modules.paths import models_path, script_path, sd_path
 
 sd_model_file = os.path.join(script_path, 'model.ckpt')

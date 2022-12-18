@@ -10,9 +10,8 @@
 
 Colab API Server added with limited functionality
 
-Please join our Discord for further information: https://discord.gg/XDQm9pk5pd
+Please join our Discord for further information: https://discord.gg/FxKSrdrPeW
 
-https://www.patreon.com/aiPixels
 
 Welcome to aiPixels, a desktop GUI with Deforum Art, Outpaint, Upscalers, and many more.
 
