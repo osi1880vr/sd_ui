@@ -121,3 +121,4 @@ pydantic
 transformers~=4.24.0
 diffusers~=0.9.0
 safetensors~=0.2.5
+pyre-extensions==0.0.23

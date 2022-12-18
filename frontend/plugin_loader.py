@@ -20,7 +20,7 @@ class PluginLoader():
 
     def load_plugin(self, plugin_name):
         module = importlib.import_module(plugin_name)
-        gs.plugins[plugin_name] = module.aiNodesPlugin(self.parent)
+        gs.plugins[plugin_name] = module.aiPixelsPlugin(self.parent)
 
         globals().update(
             {n: getattr(gs.plugins[plugin_name], n) for n in gs.plugins[plugin_name].__all__} if hasattr(gs.plugins[plugin_name], '__all__')

@@ -133,12 +133,12 @@ ldm/modules/attention.py
 *.ckpt
 *.sha256
 *.mp4
-/configs/ainodes/last_prompt.txt
-/configs/ainodes/prompt_history.txt
-/configs/ainodes/prompt_history_raw.txt
-configs/ainodes - Copy/last_prompt.txt
-configs/ainodes - Copy/settings.json
-configs/ainodes/settings.json
+/configs/aiPixels/last_prompt.txt
+/configs/aiPixels/prompt_history.txt
+/configs/aiPixels/prompt_history_raw.txt
+configs/aiPixels - Copy/last_prompt.txt
+configs/aiPixels - Copy/settings.json
+configs/aiPixels/settings.json
 /output/*
 /outputs/*
 /.idea/codeStyles/
@@ -149,18 +149,17 @@ configs/ainodes/settings.json
 /src/k-diffusion/
 /src/realesrgan/
 /src/taming-transformers/
-models/v1-5-pruned-emaonly.pt
-models/support/RealESRGAN_x4plus_anime_6B.pth
-models/support/RealESRGAN_x2plus.pth
-models/support/model_large_caption.pth
-models/support/GFPGANv1.3.pth
-models/support/dpt_large-midas-2f21e586.pt
-models/dpt_large-midas-2f21e586.pt
-models/custom/xscifiglam-3000.yaml
-models/custom/futurism_futtt.yaml
-models/768-v-ema.yaml
-models/512-base-ema.yaml
-.idea/ainodes-pyside.iml
+data/models/*.pt
+data/models/support/*.pth
+data/models/support/*.pt
+data/models/dpt_large-midas-2f21e586.pt
+data/models/custom/*.yaml
+data/models/custom/*.ckpt
+data/models/custom/*.safetensor
+data/models/*.yaml
+data/models/*.ckpt
+data/models/*.safetensor
+.idea/aiPixels-pyside.iml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/inspectionProfiles/Project_Default.xml
 .idea/misc.xml
@@ -173,3 +172,5 @@ ffmpeg.exe
 *.bak
 frontend/session_params.py.bak
 *.pt
+data/output/*
+tmp/*

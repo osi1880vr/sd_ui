@@ -20,7 +20,7 @@ import backend.interrogate
 from backend.guess_prompt import get_prompt_guess_img
 from backend.hypernetworks.modules import images
 from backend.sdv2.superresolution import run_sr
-#from volta_accelerate import convert_to_onnx, convert_to_trt
+
 gs = singleton
 
 interrogator = backend.interrogate.InterrogateModels("interrogate")
@@ -104,8 +104,6 @@ class ImageLab():  # for signaling, could be a QWidget  too
         self.imageLab.w.alphaNew.valueChanged.connect(self.update_alpha)
         self.imageLab.w.select_interrogation_output_folder.clicked.connect(self.set_interrogation_output_folder)
         self.imageLab.w.run_interrogation.clicked.connect(self.signal_run_interrogation)
-        self.imageLab.w.selected_model.clicked.connect(self.select_accel_model)
-        self.imageLab.w.run_volta_accel.clicked.connect(self.signal_run_volta_accel)
         self.imageLab.w.upscale_20.clicked.connect(self.run_upscale_20)
 
 
@@ -208,9 +206,6 @@ class ImageLab():  # for signaling, could be a QWidget  too
             print('nothing selected to interrogate')
         if 'clip' in gs.models:
             del gs.models['clip']
-
-
-
 
 
     def set_interrogation_output_folder(self):

@@ -3,7 +3,10 @@ import io
 import os
 import re
 #import gradio as gr
-from backend.hypernetworks.modules.shared import script_path
+
+script_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+#from backend.hypernetworks.modules.shared import script_path
 from backend.hypernetworks.modules import shared
 import tempfile
 from PIL import Image

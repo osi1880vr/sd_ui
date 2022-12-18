@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>aiNodes</string>
+   <string>aiPixels</string>
   </property>
   <property name="windowOpacity">
    <double>1.000000000000000</double>
@@ -71,9 +71,9 @@
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionaiNodes_Help"/>
+    <addaction name="actionaiPixels_Help"/>
     <addaction name="separator"/>
-    <addaction name="actionAbout_aiNodes"/>
+    <addaction name="actionAbout_aiPixels"/>
    </widget>
    <widget class="QMenu" name="menuSample_Process">
     <property name="title">
@@ -117,14 +117,14 @@
     </size>
    </property>
   </widget>
-  <action name="actionaiNodes_Help">
+  <action name="actionaiPixels_Help">
    <property name="text">
-    <string>aiNodes Help</string>
+    <string>aiPixels Help</string>
    </property>
   </action>
-  <action name="actionAbout_aiNodes">
+  <action name="actionAbout_aiPixels">
    <property name="text">
-    <string>About aiNodes</string>
+    <string>About aiPixels</string>
    </property>
   </action>
   <action name="actionAnim">

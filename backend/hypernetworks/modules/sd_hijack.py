@@ -1,16 +1,13 @@
 import math
 
-import numpy as np
 import torch
-from torch import optim, autocast
 from torch.nn.functional import silu
-from transformers import CLIPModel, CLIPTokenizer, CLIPTextModel, CLIPProcessor
 
 import backend.hypernetworks.modules.textual_inversion.textual_inversion
 import ldm.modules.attention
 import ldm.modules.diffusionmodules.model
 import ldm.modules.diffusionmodules.util
-from backend.devices import torch_gc, choose_torch_device
+from backend.devices import torch_gc,choose_torch_device
 from backend.hypernetworks.modules import prompt_parser, sd_hijack_optimizations
 
 ddim_timesteps = ldm.modules.diffusionmodules.util.make_ddim_timesteps
@@ -19,6 +16,7 @@ diffusionmodules_model_nonlinearity = ldm.modules.diffusionmodules.model.nonline
 diffusionmodules_model_AttnBlock_forward = ldm.modules.diffusionmodules.model.AttnBlock.forward
 from backend.singleton import singleton
 gs = singleton
+
 gs.embeddings_path = ""
 
 
@@ -52,8 +50,9 @@ def apply_optimizations():
         ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.cross_attention_attnblock_forward"""
     print("Applying xformers cross attention optimization.")
     if gs.system.xformer == True:
-        ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.xformers_attention_forward
-        ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.xformers_attnblock_forward
+        if not gs.xformers_not_available:
+            ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.xformers_attention_forward
+            ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.xformers_attnblock_forward
 
     #print('hijack util')
     #ldm.modules.diffusionmodules.util.make_ddim_timesteps = hijack_util.make_ddim_timesteps
