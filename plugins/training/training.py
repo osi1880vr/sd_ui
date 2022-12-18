@@ -506,6 +506,8 @@ class aiPixelsPlugin:
         args.push_to_hub = False
         args.hub_token = None
         args.hub_model_id = None
+        args.tokenizer_name = None
+        args.revision = None
 
         return args
 
