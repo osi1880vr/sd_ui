@@ -65,7 +65,7 @@ def DeforumArgs(attr):
     #@markdown **Image Settings**
     W = attr.W #@param
     H = attr.H #@param
-    #W, H = map(lambda x: x - x % 64, (W, H))  # resize to integer multiple of 64
+    W, H = map(lambda x: x - x % 64, (W, H))  # resize to integer multiple of 64
 
     #@markdown **Sampling Settings**
     seed = attr.seed #@param
@@ -89,7 +89,7 @@ def DeforumArgs(attr):
     log_weighted_subprompts = attr.log_weighted_subprompts #@param {type:"boolean"}
 
     #@markdown **Batch Settings**
-    n_batch = int(attr.n_batch) #@param
+    n_batch = attr.n_batch #@param
     batch_name = attr.batch_name #@param {type:"string"}
     filename_format = attr.filename_format #@param ["{timestring}_{index}_{seed}.png","{timestring}_{index}_{prompt}.png"]
     seed_behavior = attr.seed_behavior #@param ["iter","fixed","random"]
@@ -153,7 +153,7 @@ def DeforumArgs(attr):
     #@markdown **Speed vs VRAM Settings**
     cond_uncond_sync = attr.cond_uncond_sync #@param {type:"boolean"}
 
-    n_samples = int(attr.n_samples) # doesnt do anything
+    n_samples = attr.n_samples # doesnt do anything
     precision = attr.precision
     C = 4
     f = 8
@@ -168,10 +168,6 @@ def DeforumArgs(attr):
     negative_prompts = attr.negative_prompts
     hires = attr.hires
     lowmem = attr.lowmem
-    seamless = False
-    axis = {'x'}
-    gradient_pass = 'Second'
-    return_type = 'latent'
 
     del attr
     return locals()

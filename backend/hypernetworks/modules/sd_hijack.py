@@ -10,7 +10,7 @@ import backend.hypernetworks.modules.textual_inversion.textual_inversion
 import ldm.modules.attention
 import ldm.modules.diffusionmodules.model
 import ldm.modules.diffusionmodules.util
-from backend.devices import torch_gc, choose_torch_device
+from backend.devices import torch_gc
 from backend.hypernetworks.modules import prompt_parser, sd_hijack_optimizations
 
 ddim_timesteps = ldm.modules.diffusionmodules.util.make_ddim_timesteps
@@ -51,10 +51,8 @@ def apply_optimizations():
         ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.split_cross_attention_forward
         ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.cross_attention_attnblock_forward"""
     print("Applying xformers cross attention optimization.")
-    if gs.system.xformer == True:
-        if not gs.xformers_not_available:
-            ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.xformers_attention_forward
-            ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.xformers_attnblock_forward
+    ldm.modules.attention.CrossAttention.forward = sd_hijack_optimizations.xformers_attention_forward
+    ldm.modules.diffusionmodules.model.AttnBlock.forward = sd_hijack_optimizations.xformers_attnblock_forward
 
     #print('hijack util')
     #ldm.modules.diffusionmodules.util.make_ddim_timesteps = hijack_util.make_ddim_timesteps
@@ -83,24 +81,18 @@ class StableDiffusionModelHijack:
     circular_enabled = False
     clip = None
 
-    embedding_db = backend.hypernetworks.modules.textual_inversion.textual_inversion.EmbeddingDatabase(gs.system.textual_inversion_dir)
+    embedding_db = backend.hypernetworks.modules.textual_inversion.textual_inversion.EmbeddingDatabase(gs.embeddings_path)
 
     def hijack(self, m):
 
-        #model_embeddings = gs.models["sd"].cond_stage_model.transformer.text_model.embeddings
-
-
         model_embeddings = gs.models["sd"].cond_stage_model.transformer.text_model.embeddings
+
         model_embeddings.token_embedding = EmbeddingsWithFixes(model_embeddings.token_embedding, self)
-        gs.models["sd"].cond_stage_model = FrozenCLIPEmbedderWithCustomWords(gs.models["sd"].cond_stage_model, self)
-
-
-        #model_embeddings.token_embedding = EmbeddingsWithFixes(model_embeddings.token_embedding, self)
         #gs.models["sd"].cond_stage_model = FrozenCLIPEmbedderWithCustomWords(gs.models["sd"].cond_stage_model, self)
 
         #self.clip = gs.models["sd"].cond_stage_model
 
-        apply_optimizations()
+        #apply_optimizations()
 
         def flatten(el):
             flattened = [flatten(children) for children in el.children()]
@@ -369,7 +361,7 @@ class FrozenCLIPEmbedderWithCustomWords(torch.nn.Module):
         if not gs.use_old_emphasis_implementation:
             remade_batch_tokens = [[self.wrapped.tokenizer.bos_token_id] + x[:75] + [self.wrapped.tokenizer.eos_token_id] for x in remade_batch_tokens]
             batch_multipliers = [[1.0] + x[:75] + [1.0] for x in batch_multipliers]
-        device = choose_torch_device()
+
         tokens = torch.asarray(remade_batch_tokens).to(device)
         outputs = self.wrapped.transformer(input_ids=tokens, output_hidden_states=-gs.CLIP_stop_at_last_layers)
 
@@ -377,7 +369,7 @@ class FrozenCLIPEmbedderWithCustomWords(torch.nn.Module):
             z = outputs.hidden_states[-gs.CLIP_stop_at_last_layers]
             z = self.wrapped.transformer.text_model.final_layer_norm(z)
         else:
-            z = outputs[0]
+            z = outputs.last_hidden_state
 
         # restoring original mean is likely not correct, but it seems to work well to prevent artifacts that happen otherwise
         batch_multipliers_of_same_length = [x + [1.0] * (75 - len(x)) for x in batch_multipliers]

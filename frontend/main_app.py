@@ -5,12 +5,12 @@ import sys
 from PySide6.QtQuick import QSGRendererInterface
 from PySide6.QtWidgets import QApplication, QSplashScreen
 import os
-#os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 defaultdirs = [
     "data",
     "data/models",
-    "data/models/custom",
+    "data/models/alternate",
 ]
 
 for i in defaultdirs:

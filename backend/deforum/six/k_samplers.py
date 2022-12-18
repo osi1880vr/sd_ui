@@ -19,15 +19,10 @@ def sampler_fn(
     verbose: Optional[bool] = False,
 ) -> torch.Tensor:
     shape = [args.C, args.H // args.f, args.W // args.f]
-    #gs.karras = True
-    if gs.karras == True:
-        print("Using Karras Scheduler")
-        sigmas = sampling.get_sigmas_karras(n=args.steps, sigma_min=0.1, sigma_max=10, device="cuda")
-    else:
-        sigmas: torch.Tensor = model_wrap.get_sigmas(args.steps)
-    #print(f"sigmas: {sigmas}")
+    sigmas: torch.Tensor = model_wrap.get_sigmas(args.steps)
+    print(f"sigmas: {sigmas}")
     sigmas = sigmas[len(sigmas) - t_enc - 1 :]
-    #print(f"sigmas: {sigmas}")
+    print(f"sigmas: {sigmas}")
     if args.use_init:
         if len(sigmas) > 0:
             x = (
@@ -69,8 +64,6 @@ def sampler_fn(
             "disable": False,
             "callback": cb,
             "n":args.steps,
-            "eta": 0.0,
-            "s_noise": 1.0,
         }
     elif args.sampler in ["dpm_adaptive"]:
         sampler_args = {
@@ -81,29 +74,7 @@ def sampler_fn(
             "extra_args": {"cond": c, "uncond": uc, "cond_scale": args.scale},
             "disable": False,
             "callback": cb,
-            "order": 3,
-            "rtol": 0.05,
-            "atol": 0.0078,
-            "h_init": 0.05,
-            "pcoeff": 0.0,
-            "icoeff": 1.0,
-            "dcoeff": 0.0,
-            "eta": 0.0,
-            "s_noise": 1.0,
         }
-
-    elif args.sampler in ["dpmpp_sde", "dpmpp_2s_a"]:
-        sampler_args = {
-            "model": model_wrap,
-            "x": x,
-            "sigmas": sigmas,
-            "extra_args": {"cond": c, "uncond": uc, "cond_scale": args.scale},
-            "disable": False,
-            "callback": cb,
-            "eta": 1.0,
-            "s_noise": 1.0,
-        }
-
     sampler_map = {
         "klms": sampling.sample_lms,
         "dpm2": sampling.sample_dpm_2,
@@ -115,7 +86,6 @@ def sampler_fn(
         "dpm_adaptive": sampling.sample_dpm_adaptive,
         "dpmpp_2s_a": sampling.sample_dpmpp_2s_ancestral,
         "dpmpp_2m": sampling.sample_dpmpp_2m,
-        "dpmpp_sde": sampling.sample_dpmpp_sde,
     }
 
     samples = sampler_map[args.sampler](**sampler_args)

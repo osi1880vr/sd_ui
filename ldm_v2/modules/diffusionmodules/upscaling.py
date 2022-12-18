@@ -76,3 +76,6 @@ class ImageConcatWithNoiseAugmentation(AbstractLowScaleModel):
             assert isinstance(noise_level, torch.Tensor)
         z = self.q_sample(x, noise_level)
         return z, noise_level
+
+
+

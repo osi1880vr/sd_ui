@@ -14,7 +14,8 @@ import os
 from torchvision.utils import make_grid
 from tqdm import tqdm, trange
 
-
+from ldm.models.diffusion.plms import PLMSSampler
+from ldm.models.diffusion.ddim import DDIMSampler
 from k_diffusion.external import CompVisDenoiser, CompVisVDenoiser
 from torch import autocast
 from contextlib import nullcontext
@@ -34,9 +35,6 @@ from backend.torch_gc import torch_gc
 
 from backend.singleton import singleton
 from backend.resizeRight import resizeright, interp_methods
-import k_diffusion
-
-from ...devices import choose_torch_device
 
 gs = singleton
 def randn(seed, shape):
@@ -48,7 +46,7 @@ def randn(seed, shape):
     #    return noise
 
     torch.manual_seed(seed)
-    return torch.randn(shape, device=choose_torch_device())
+    return torch.randn(shape, device='cuda')
 def slerp(val, low, high):
     low_norm = low/torch.norm(low, dim=1, keepdim=True)
     high_norm = high/torch.norm(high, dim=1, keepdim=True)
@@ -63,7 +61,7 @@ def slerp(val, low, high):
     return res
 def create_random_tensors(shape, seeds, subseeds=None, subseed_strength=0.0, seed_resize_from_h=0, seed_resize_from_w=0, p=None):
     xs = []
-    device = choose_torch_device()
+    device = 'cuda'
     seeds = [seeds]
     # if we have multiple seeds, this means we are working with batch size>1; this then
     # enables the generation of additional tensors with noise that the sampler will use during its processing.
@@ -224,26 +222,13 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
         args.oldW = args.W
         args.H = new_H
         args.W = new_W
-        args.n_samples = 1
-    if gs.model_version == '1.5':
-        from ldm.models.diffusion.plms import PLMSSampler
-        from ldm.models.diffusion.ddim import DDIMSampler
-    elif gs.model_version == '2.0':
-        from ldm_v2.models.diffusion.plms import PLMSSampler
-        from ldm_v2.models.diffusion.ddim import DDIMSampler
+
 
     sampler = PLMSSampler(gs.models["sd"]) if args.sampler == 'plms' else DDIMSampler(gs.models["sd"])
-    if gs.model_version in gs.system.gen_one_models or gs.model_resolution == 512:
-        print("using old denoiser")
-        #k_diffusion.external.CompVisVDenoiser = CompVisDenoiser
+    if gs.model_version in gs.system.gen_one_models:
         model_wrap = CompVisDenoiser(gs.models["sd"])
-        print(gs.model_version, gs.model_resolution)
-    elif gs.model_version in gs.system.gen_two_models and gs.model_resolution == 768:
-        print("using new denoiser")
-        gs.denoiser = 2
+    if gs.model_version in gs.system.gen_two_models:
         model_wrap = CompVisVDenoiser(gs.models["sd"])
-
-
     batch_size = args.n_samples
     prompt = args.prompt
     assert prompt is not None
@@ -257,8 +242,6 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
         init_latent = args.init_latent
     elif args.init_sample is not None:
         with precision_scope("cuda"):
-            #gs.models["sd"].first_stage_model.to(root.device)
-            #args.init_sample.float()
             init_latent = gs.models["sd"].get_first_stage_encoding(gs.models["sd"].encode_first_stage(args.init_sample))
     elif args.use_init and args.init_image != None and args.init_image != '':
         init_image, mask_image = load_img(args.init_image, 
@@ -268,11 +251,6 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
         init_image = repeat(init_image, '1 ... -> b ...', b=batch_size)
         with precision_scope("cuda"):
             init_latent = gs.models["sd"].get_first_stage_encoding(gs.models["sd"].encode_first_stage(init_image))  # move to latent space
-            init_latent = resizeright.resize(init_latent, scale_factors=None,
-                                         out_shape=[init_latent.shape[0], init_latent.shape[1], args.H // 8, args.W // 8],
-                                         interp_method=interp_methods.lanczos3, support_sz=None,
-                                         antialiasing=True, by_convs=True, scale_tolerance=None,
-                                         max_numerator=10, pad_mode='reflect')
 
     if not args.use_init and args.strength > 0 and args.strength_0_no_init:
         print("\nNo init image, but strength > 0. Strength has been auto set to 0, since use_init is False.")
@@ -319,10 +297,8 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
     args.clamp_schedule = dict(zip(k_sigmas.tolist(), np.linspace(args.clamp_start,args.clamp_stop,args.steps+1)))
     k_sigmas = k_sigmas[len(k_sigmas)-t_enc-1:]
 
-    if args.sampler in ['plms','ddim'] and gs.model_version == '1.5':
+    if args.sampler in ['plms','ddim']:
         sampler.make_schedule(ddim_num_steps=args.steps, ddim_eta=args.ddim_eta, ddim_discretize='fill', verbose=False)
-    elif args.sampler in ['plms','ddim'] and gs.model_version == '2.0':
-        sampler.make_schedule(ddim_num_steps=args.steps, ddim_eta=args.ddim_eta, ddim_discretize='quad', verbose=False)
 
     if args.colormatch_scale != 0:
         assert args.colormatch_image is not None, "If using color match loss, colormatch_image is needed"
@@ -394,7 +370,7 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
 
     clamp_fn = threshold_by(threshold=args.clamp_grad_threshold, threshold_type=args.grad_threshold_type, clamp_schedule=args.clamp_schedule)
 
-    args.grad_inject_timing = args.grad_inject_timing if args.grad_inject_timing != 'None' else None
+
     grad_inject_timing_fn = make_inject_timing_fn(args.grad_inject_timing, model_wrap, args.steps)
 
     cfg_model = CFGDenoiserWithGrad(model_wrap, 
@@ -434,7 +410,7 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
                     if args.init_c != None:
                         c = args.init_c
 
-                    if args.sampler in ["klms","dpm2","dpm2_ancestral","heun","euler","euler_ancestral", "dpm_fast", "dpm_adaptive", "dpmpp_2s_a", "dpmpp_2m", "dpmpp_sde"]:
+                    if args.sampler in ["klms","dpm2","dpm2_ancestral","heun","euler","euler_ancestral", "dpm_fast", "dpm_adaptive", "dpmpp_2s_a", "dpmpp_2m"]:
                         #x = t_enc
 
                         #gs.x = create_random_tensors([4, args.H // 8, args.W // 8], seeds=(args.seed), seed_resize_from_h=args.oldH, seed_resize_from_w=args.oldW )
@@ -442,7 +418,6 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
                         #    args.H = args.oldH
                         #    args.W = args.oldW
                         torch_gc()
-
                         samples = sampler_fn(
                             c=c, 
                             uc=uc,
@@ -450,18 +425,18 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
                             model_wrap=cfg_model, 
                             init_latent=init_latent, 
                             t_enc=t_enc,
-                            device=root.device,
+                            device="cuda", 
                             cb=callback,
                             verbose=False)
                         if hires:
                             samples = samples[:, :, t_H//2:samples.shape[2]-t_H//2, t_W//2:samples.shape[3]-t_W//2]
-                            #print(samples.shape)
+                            print(samples.shape)
                             samples = resizeright.resize(samples, scale_factors=None, out_shape=[samples.shape[0], samples.shape[1], args.oldH // 8, args.oldW // 8],
                                                             interp_method=interp_methods.lanczos3, support_sz=None,
                                                             antialiasing=True, by_convs=True, scale_tolerance=None,
                                                             max_numerator=10, pad_mode='reflect')
                             #samples = torch.nn.functional.interpolate(samples, size=(args.oldH // 8, args.oldW // 8), mode="bilinear")
-                            #print(samples.shape)
+                            print(samples.shape)
 
                     else:
                         # args.sampler == 'plms' or args.sampler == 'ddim':
@@ -494,28 +469,8 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
                     
                     if return_latent:
                         results.append(samples.clone())
-                    #if hires == False:
-                    if not return_latent:
-                        try:
-                            gs.models["sd"].first_stage_model.to(root.device)
-                        except:
-                            pass
-                        try:
-                            gs.models["sd"].cond_stage_model.to("cpu")
-                        except:
-                            pass
-                        try:
-                            gs.models["sd"].model.to("cpu")
-                        except:
-                            pass
-                        if not hires:
-                            x_samples = [
-                                decode_first_stage(gs.models["sd"], samples[i:i + 1].to(root.device))[0].cpu() for i
-                                in range(samples.size(0))]
-                            x_samples = torch.stack(x_samples).float()
-                        else:
-                            x_samples = gs.models["sd"].decode_first_stage(samples)
-                            #x_samples = samples[0]
+
+                    x_samples = gs.models["sd"].decode_first_stage(samples)
 
                     if args.use_mask and args.overlay_mask:
                         # Overlay the masked image after the image is generated
@@ -543,22 +498,18 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
 
                     if return_sample:
                         results.append(x_samples.clone())
-                    if return_latent == False:
-                        x_samples = torch.clamp((x_samples + 1.0) / 2.0, min=0.0, max=1.0)
-                        if return_c:
-                            results.append(c.clone())
-                        if not return_latent:
-                            for x_sample in x_samples:
-                                x_sample = 255. * rearrange(x_sample.cpu().numpy(), 'c h w -> h w c')
-                                image = Image.fromarray(x_sample.astype(np.uint8))
-                                results.append(image)
-                                del image
 
-    k_sigmas = None
-    mask_fullres = None
-    cfg_model.to('cpu')
-    model_wrap.to('cpu')
-    x_sample = None
+                    x_samples = torch.clamp((x_samples + 1.0) / 2.0, min=0.0, max=1.0)
+
+                    if return_c:
+                        results.append(c.clone())
+
+                    for x_sample in x_samples:
+                        x_sample = 255. * rearrange(x_sample.cpu().numpy(), 'c h w -> h w c')
+                        image = Image.fromarray(x_sample.astype(np.uint8))
+                        results.append(image)
+    #del args
+    #del root
     x_samples = None
     c = None
     uc = None
@@ -571,7 +522,7 @@ def generate(args, root, frame = 0, return_latent=False, return_sample=False, re
     del c
     del uc
     del sampler
-
+    del image
     torch_gc()
     return results
 def generate_lowmem(args, root, frame = 0, return_latent=False, return_sample=False, return_c=False, step_callback=None, hires=None):
@@ -593,7 +544,7 @@ def generate_lowmem(args, root, frame = 0, return_latent=False, return_sample=Fa
         full_precision=True,
         sampler='euler_a',
     )
-    return results
+    return [results[0]]
 
     """
     seed_everything(args.seed)
@@ -919,11 +870,7 @@ def generate_lowmem(args, root, frame = 0, return_latent=False, return_sample=Fa
     #del sampler
     del image
     return results"""
-def decode_first_stage(model, x):
-    with autocast(choose_torch_device()):
-        x = model.decode_first_stage(x)
 
-    return x
 
 def generate_lm(
         prompt,
@@ -978,7 +925,7 @@ def generate_lm(
         precision_scope = autocast
     else:
         precision_scope = nullcontext
-    all_images = []
+
     all_samples = []
     seeds = ""
     with torch.no_grad():
@@ -1030,17 +977,14 @@ def generate_lm(
 
                     gs.models["modelFS"].to(device)
                     print("saving images")
-
                     for i in range(batch_size):
                         x_samples_ddim = gs.models["modelFS"].decode_first_stage(samples_ddim[i].unsqueeze(0))
                         x_sample = torch.clamp((x_samples_ddim + 1.0) / 2.0, min=0.0, max=1.0)
                         all_samples.append(x_sample.to("cpu"))
                         x_sample = 255.0 * rearrange(x_sample[0].cpu().numpy(), "c h w -> h w c")
-                        image = Image.fromarray(x_sample.astype(np.uint8))
-                        image.save(
+                        Image.fromarray(x_sample.astype(np.uint8)).save(
                             os.path.join(sample_path, "seed_" + str(seed) + "_" + f"{base_count:05}.{img_format}")
                         )
-                        all_images.append(image)
                         seeds += str(seed) + ","
                         seed += 1
                         base_count += 1
@@ -1058,17 +1002,17 @@ def generate_lm(
 
     toc = time.time()
 
-    #time_taken = (toc - tic) / 60.0
-    #grid = torch.cat(all_samples, 0)
-    #grid = make_grid(grid, nrow=n_iter)
-    #grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
+    time_taken = (toc - tic) / 60.0
+    grid = torch.cat(all_samples, 0)
+    grid = make_grid(grid, nrow=n_iter)
+    grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
 
-    #txt = (
-    #        "Samples finished in "
-    #        + str(round(time_taken, 3))
-    #        + " minutes and exported to "
-    #        + sample_path
-    #        + "\nSeeds used = "
-    #        + seeds[:-1]
-    #)
-    return all_images
+    txt = (
+            "Samples finished in "
+            + str(round(time_taken, 3))
+            + " minutes and exported to "
+            + sample_path
+            + "\nSeeds used = "
+            + seeds[:-1]
+    )
+    return [Image.fromarray(grid.astype(np.uint8)), txt]

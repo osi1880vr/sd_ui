@@ -167,3 +167,4 @@ class MiDaSInference(nn.Module):
             )
         assert prediction.shape == (x.shape[0], 1, x.shape[2], x.shape[3])
         return prediction
+

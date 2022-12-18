@@ -128,14 +128,14 @@ def prepare_enviroment():
     midas_repo = os.environ.get('MIDAS_REPO', 'https://github.com/isl-org/MiDaS.git')
     pytorch_lite_repo = os.environ.get('PYTORCH_LITE_REPO', 'https://github.com/osi1880vr/pytorch3d-lite.git')
     impro_aesthetic_repo = os.environ.get('IMPRO_AESTHETIC_REPO', 'https://github.com/christophschuhmann/improved-aesthetic-predictor.git')
-    volta_ml_repo = os.environ.get('VOLTA_ML_REPO', 'https://github.com/VoltaML/voltaML-fast-stable-diffusion.git')
+
 
     stable_diffusion_commit_hash = os.environ.get('STABLE_DIFFUSION_COMMIT_HASH', "69ae4b35e0a0f6ee1af8bb9a5d0016ccb27e36dc")
     taming_transformers_commit_hash = os.environ.get('TAMING_TRANSFORMERS_COMMIT_HASH', "24268930bf1dce879235a7fddd0b2355b84d7ea6")
     k_diffusion_commit_hash = os.environ.get('K_DIFFUSION_COMMIT_HASH', "5b3af030dd83e0297272d861c19477735d0317ec")
     codeformer_commit_hash = os.environ.get('CODEFORMER_COMMIT_HASH', "c5b4593074ba6214284d6acd5f1719b6c5d739af")
     blip_commit_hash = os.environ.get('BLIP_COMMIT_HASH', "48211a1594f1321b00f14c9f7a5b4813144b2fb9")
-    volta_ml_hash = os.environ.get('VOLTA_ML__HASH', "303d5f8df54f58987818722226a6398a9aed8aa6")
+
 
     real_esrgan_commit_hash = os.environ.get('REAL_ESRGAN_COMMIT_HASH', "5ca1078535923d485892caee7d7804380bfc87fd")
     adabins_commit_hash = os.environ.get('ADABINS_COMMIT_HASH', "4524615236f5f486381fac2f9c624f20dedf324f")
@@ -181,8 +181,8 @@ def prepare_enviroment():
             else:
                 print("Installation of xformers is not supported in this version of Python.")
                 print("You can also check this and build manually: https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/Xformers#building-xformers-on-windows-by-duckness")
-                #if not is_installed("xformers"):
-                #    exit(0)
+                if not is_installed("xformers"):
+                    exit(0)
         elif platform.system() == "Linux":
             run_pip("install xformers", "xformers")
 
@@ -206,7 +206,6 @@ def prepare_enviroment():
     git_clone(midas_repo, repo_dir('MiDaS'), "MiDaS", midas_commit_hash)
     git_clone(pytorch_lite_repo, repo_dir('pytorch3d-lite'), "pytorch3d-lite", pytorch_litet_hash)
     git_clone(impro_aesthetic_repo, repo_dir('improved-aesthetic-predictor'), "improved-aesthetic-predictor", impro_aesthetic_hash)
-    git_clone(volta_ml_repo, repo_dir('volta-ml'), "volta-ml", volta_ml_hash)
 
     if not is_installed("lpips"):
         run_pip(f"install -r {os.path.join(repo_dir('CodeFormer'), 'requirements.txt')}", "requirements for CodeFormer")
@@ -226,7 +225,7 @@ def prepare_enviroment():
 
 
 def start_sdui():
-    print(f"Launching SD UI")
+    print(f"Launching SD UI with arguments: {' '.join(sys.argv[1:])}")
     import frontend.startup
     frontend.startup.run_app()
 

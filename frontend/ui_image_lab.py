@@ -2,7 +2,6 @@ import os
 import re
 import shutil
 import codecs
-from types import SimpleNamespace
 
 from PIL import Image
 from PySide6 import QtUiTools, QtCore, QtWidgets, QtGui
@@ -19,8 +18,6 @@ from backend.aestetics_score import get_aestetics_score
 import backend.interrogate
 from backend.guess_prompt import get_prompt_guess_img
 from backend.hypernetworks.modules import images
-from backend.sdv2.superresolution import run_sr
-#from volta_accelerate import convert_to_onnx, convert_to_trt
 gs = singleton
 
 interrogator = backend.interrogate.InterrogateModels("interrogate")
@@ -78,8 +75,6 @@ class Callbacks(QObject):
     ebl_model_merge_start = Signal()
     run_aestetic_prediction = Signal()
     run_interrogation = Signal()
-    run_volta_accel = Signal()
-    run_upscale_20 = Signal()
 
 class ImageLab():  # for signaling, could be a QWidget  too
 
@@ -94,8 +89,8 @@ class ImageLab():  # for signaling, could be a QWidget  too
         self.imageLab.w.startUpscale.clicked.connect(self.signal_start_upscale)
         self.imageLab.w.startImgToTxt.clicked.connect(self.signal_start_img_to_txt)
         self.imageLab.w.startWaterMark.clicked.connect(self.signal_start_watermark)
-        self.imageLab.w.selectA.clicked.connect(self.selected_model_a)
-        self.imageLab.w.selectB.clicked.connect(self.selected_model_b)
+        self.imageLab.w.selectA.clicked.connect(self.select_model_a)
+        self.imageLab.w.selectB.clicked.connect(self.select_model_b)
         self.imageLab.w.Merge.clicked.connect(self.start_merge)
         self.imageLab.w.MergeEBL.clicked.connect(self.start_ebl_merge)
         self.imageLab.w.run_aestetic_prediction.clicked.connect(self.aestetic_prediction)
@@ -104,43 +99,6 @@ class ImageLab():  # for signaling, could be a QWidget  too
         self.imageLab.w.alphaNew.valueChanged.connect(self.update_alpha)
         self.imageLab.w.select_interrogation_output_folder.clicked.connect(self.set_interrogation_output_folder)
         self.imageLab.w.run_interrogation.clicked.connect(self.signal_run_interrogation)
-        self.imageLab.w.selected_model.clicked.connect(self.select_accel_model)
-        self.imageLab.w.run_volta_accel.clicked.connect(self.signal_run_volta_accel)
-        self.imageLab.w.upscale_20.clicked.connect(self.run_upscale_20)
-
-
-
-    def run_upscale_20(self, progress_callback=False):
-        run_sr(image_list=self.fileList,
-               target_h=self.imageLab.w.upscale_h.value(),
-               target_w=self.imageLab.w.upscale_w.value(),
-               prompt=self.imageLab.w.textEdit.toPlainText(),
-               seed=self.imageLab.w.seed.text(),
-               num_samples=self.imageLab.w.samples.value(),
-               scale=self.imageLab.w.scale.value(),
-               steps=self.imageLab.w.steps.value(),
-               eta=self.imageLab.w.ddim_eta.value(),
-               noise_level=self.imageLab.w.noise_level.value()
-        )
-
-    # todo get this working on linux boxes
-    def run_volta_accel(self, progress_callback=False):
-        args = {}
-        args['model_path'] = self.imageLab.w.accel_path.text()
-        args = SimpleNamespace(**args)
-        args.image_size = (512, 512)
-        args.max_seq_length = 77
-        args.max_gpu_memory = self.imageLab.w.max_gpu_memory.value()
-
-        convert_to_onnx(args)
-        convert_to_trt(args)
-
-    def signal_run_volta_accel(self):
-        self.signals.run_volta_accel.emit()
-
-    def select_accel_model(self):
-        accel_model_filename = QFileDialog.getOpenFileName()[0]
-        self.imageLab.w.accel_path.setText(accel_model_filename)
 
 
     def signal_run_interrogation(self):
@@ -152,7 +110,7 @@ class ImageLab():  # for signaling, could be a QWidget  too
         copy_info_text = self.imageLab.w.copy_info_text.isChecked()
         interrogate = self.imageLab.w.interrogate.isChecked()
         guess_prompt = self.imageLab.w.guess_prompt.isChecked()
-        matcher = re.compile(r'(.*?)(\..*)')
+        matcher = re.compile('(.*?)(\..*)')
         if interrogate:
             interrogator.load()
         if interrogate or guess_prompt:
@@ -233,7 +191,7 @@ class ImageLab():  # for signaling, could be a QWidget  too
 
     def run_aestetic_prediction(self, progress_callback=False):
         print('Aestetics calculation started')
-        matcher = re.compile(r'(.*?)(\..*)')
+        matcher = re.compile('(.*?)(\..*)')
         aesthetics_keep_folder_structure = self.imageLab.w.aesthetics_keep_folder_structure.isChecked()
         if len(self.fileList) > 0:
             for file in self.fileList:
@@ -263,7 +221,7 @@ class ImageLab():  # for signaling, could be a QWidget  too
         print('Aestetics calculation finished')
 
 
-    def selected_model_a(self):
+    def select_model_a(self):
         self.modela = list(QFileDialog.getOpenFileName())
         print(list(self.modela))
         print(type(self.modela))
@@ -276,7 +234,7 @@ class ImageLab():  # for signaling, could be a QWidget  too
         # Use the selected directory...
         print('selected_directory:', selected_directory)
 
-    def selected_model_b(self):
+    def select_model_b(self):
         self.modelb = list(QFileDialog.getOpenFileName())
         self.imageLab.w.modelBpath.setText(self.modelb[0])
 
@@ -320,6 +278,12 @@ class ImageLab():  # for signaling, could be a QWidget  too
 
     def upscale_count(self, num):
         self.signals.upscale_counter.emit(num)
+
+
+    def check_model_present(self):
+        'src/realesrgan/experiments/pretrained_models/RealESRGAN_x4plus.pth'
+        'src/realesrgan/experiments/pretrained_models/RealESRGAN_x4plus_anime_6B'
+
 
 
     def run_upscale(self, progress_callback=None):

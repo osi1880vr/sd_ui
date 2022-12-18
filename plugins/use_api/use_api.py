@@ -25,7 +25,6 @@ the image_preview_func from the main thread.
 """
 
 import os
-import zipfile
 import time
 import random
 import json
@@ -34,7 +33,7 @@ from PIL import Image, ImageFont, ImageDraw
 from PySide6 import QtCore, QtNetwork
 from PySide6.QtCore import QObject, Signal, QJsonDocument, Slot, QFile, QIODevice
 from PySide6.QtGui import QPixmap, QImage
-from PySide6.QtWidgets import QMainWindow, QLineEdit, QFrame, QWidget, QHBoxLayout
+from PySide6.QtWidgets import QMainWindow
 
 import frontend.ui_deforum
 from backend.singleton import singleton
@@ -43,8 +42,7 @@ from torchvision.utils import make_grid
 from einops import rearrange
 from fonts.ttf import Roboto
 from backend.worker import Worker
-from frontend.session_params import translate_sampler
-from frontend import ui_model_chooser
+
 gs = singleton
 
 class aiNodesPlugin():
@@ -57,26 +55,9 @@ class aiNodesPlugin():
 
     def use_api_processing(self):
         #self.parent.ui_deforum = None
-        try:
-            self.parent.unicontrol.w.dream.clicked.disconnect()
-        except:
-            pass
-        frontend.ui_deforum.Deforum_UI = DeforumAPI
-        self.parent.ui_deforum = DeforumAPI(self.parent)
+        frontend.ui_deforum.Deforum_UI = Deforum_UI
+        self.parent.ui_deforum = Deforum_UI(self.parent)
         self.parent.unicontrol.w.dream.clicked.connect(self.parent.ui_deforum.run_deforum_six_txt2img)
-        self.widget = QWidget()
-        self.parent.urledit = QLineEdit()
-        self.layout = QHBoxLayout(self.widget)
-        self.layout.addWidget(self.parent.urledit)
-        ui_model_chooser.ModelChooser_UI.set_model = self.parent.ui_deforum.set_model
-        try:
-            self.parent.system_setup.w.activateModel.disconnect()
-        except:
-            pass
-        self.parent.system_setup.w.activateModel.clicked.connect(self.parent.ui_deforum.set_model)
-        #self.parent.system_setup.w.reloadModelList.clicked.connect(self.load_folder_content)
-
-        self.widget.show()
         #self.parent.ui_deforum = Deforum_UI(self.parent)
 
 
@@ -93,7 +74,7 @@ class Callbacks(QObject):
     vid2vid_one_percent = Signal(int)
     prepare_hires_batch = Signal(str)
 
-class DeforumAPI(QObject):
+class Deforum_UI(QObject):
     def __init__(self, parent):
         # super(QObject, self).__init__()
         self.renderedFrames = None
@@ -176,15 +157,15 @@ class DeforumAPI(QObject):
                                          )
 
     def run_deforum_six_txt2img(self, progress_callback=None, plotting=True):
-        gs.stop_all = False
+
         params = self.parent.sessionparams.update_params()
         print(f"updated tyutya to: {params}")
         if "inpaint" in gs.models:
             del gs.models["inpaint"]
-        #if params.with_inpaint == True:
-        #    self.parent.params.advanced = True
-        #else:
-        #    self.parent.params.advanced = False
+        if params["with_inpaint"] == True:
+            self.parent.params['advanced'] = True
+        else:
+            self.parent.params['advanced'] = False
         seed = random.randint(0, 2 ** 32 - 1)
         # print('strength ui', float(params['strength']))
 
@@ -201,39 +182,33 @@ class DeforumAPI(QObject):
             plotY = plotx_list_string.split(', ')
             plotX = ploty_list_string.split(', ')
             self.onePercent = 100 / (
-                        len(plotX) * len(plotY) * params.n_batch * params.n_samples * params.steps)
+                        len(plotX) * len(plotY) * params['n_batch'] * params['n_samples'] * params['steps'])
             # print(self.onePercent)
 
         else:
             plotX = [1]
             plotY = [1]
-            self.onePercent = 100 / (params.n_batch * params.n_samples * params.steps)
+            self.onePercent = 100 / (params['n_batch'] * params['n_samples'] * params['steps'])
         # print(plotY, plotX)
         all_images = []
         # print(f"Grid Dimensions: {len(plotX)}, {len(plotY)}")
         # print(self.onePercent)
         # print(params)
-        self.parent.w = params.W
+        self.parent.w = params['W']
         for i in plotY:
             for j in plotX:
                 if plotting:
-                    params.__dict__[attrib1] = i
-                    params.__dict__[attrib2] = j
+                    params[attrib1] = i
+                    params[attrib2] = j
                     if attrib1 == 'T': gs.T = int(i)
                     if attrib1 == 'lr': gs.lr = float(i)
                     if attrib2 == 'T': gs.T = int(j)
                     if attrib2 == 'lr': gs.lr = float(j)
                 print("PARAMS BELOW")
-                params = params.__dict__
-                self.url = QtCore.QUrl(f"{self.parent.urledit.text()}/api/v1/txttoimg/run")
-                # self.url = QtCore.QUrl("https://www.google.com/")
-                #params = {}
-                print(params['prompts'])
-                #params['prompts'] = "corgi"
-                params['prompt'] = params['prompts']
 
-                #params['prompts'] = list(params['prompts'])
-                params['makegrid'] = False
+                self.url = QtCore.QUrl("http://6995-35-190-178-249.ngrok.io/api/v1/txttoimg/run")
+                # self.url = QtCore.QUrl("https://www.google.com/")
+                params['prompt'] = 'test'
                 params['iterations'] = 1
                 params['separate_prompts'] = False
                 params['save_individual_images'] = True
@@ -246,10 +221,6 @@ class DeforumAPI(QObject):
                 params['realesrgan_model_name'] = ""
                 params['variant_amount'] = 0
                 params['write_info_files'] = False
-                params['karras'] = self.parent.unicontrol.w.karras.isChecked()
-                params['sampler'] = translate_sampler(params['sampler'])
-                print(params['sampler'])
-
                 self.manager = QtNetwork.QNetworkAccessManager()
                 self.manager.finished.connect(self.handleResponse)
                 self.request = QtNetwork.QNetworkRequest()
@@ -377,29 +348,12 @@ class DeforumAPI(QObject):
     @Slot()
     def handleResponse(self, response):
         bytes_string = response.readAll()
-        print(type(bytes_string))
-        file = QFile("response.zip")
-        file.open(QIODevice.WriteOnly)
-        file.write(bytes_string)
-        file.close()
-        outdir = os.path.join(gs.system.outdir, f'response_{time.strftime("%Y%m%d%H%M%S")}')
-        os.makedirs(outdir, exist_ok=True)
-        with zipfile.ZipFile('response.zip', 'r') as zip_ref:
-            zip_ref.extractall(outdir)
-        for root, dirs, files in os.walk(outdir):
-            for filename in files:
-                filename = os.path.join(root, filename)
-                if os.path.isfile(filename):
-                    image = Image.open(filename)
-                    self.parent.image_preview_signal(image)
+        img = QImage()
+        img.loadFromData(bytes_string)
+        pixmap = QPixmap.fromImage(img)
+        pixmap.save("test.png")
 
 
-        #img = QImage()
-        #img.loadFromData(bytes_string)
-        #pixmap = QPixmap.fromImage(img)
-        #pixmap.save("test.png")
-        #image = Image.open("test.png")
-        #self.parent.image_preview_signal(image)
         del response
         return
     def run_deforum_outpaint(self, params=None, progress_callback=None):
@@ -424,7 +378,7 @@ class DeforumAPI(QObject):
         init_image = "outpaint.png"
         gs.T = self.parent.unicontrol.w.gradient_steps.value()
         gs.lr = self.parent.unicontrol.w.gradient_scale.value() / 1000000000
-        gs.aesthetic_embedding_path = os.path.join(gs.system.aesthetic_gradients_dir,
+        gs.aesthetic_embedding_path = os.path.join(gs.system.aesthetic_gradients,
                                                    self.parent.unicontrol.w.aesthetic_embedding.currentText())
         if params == None:
             params = self.parent.params
@@ -470,23 +424,6 @@ class DeforumAPI(QObject):
         self.choice = "Outpaint"
         worker = Worker(self.run_deforum_outpaint)
         self.parent.threadpool.start(worker)
-    def set_model(self):
-        self.url = QtCore.QUrl(f"{self.parent.urledit.text()}/api/v1/txttoimg/change_model")
-        print(os.path.join(gs.system.custom_models_dir, self.parent.path_setup.w.modelList.currentText()))
-        params = {
-            "ckpt": str(self.parent.path_setup.w.modelList.currentText())
-        }
-        self.manager = QtNetwork.QNetworkAccessManager()
-        #self.manager.finished.connect(self.handleResponse)
-        self.request = QtNetwork.QNetworkRequest()
-        self.request.setUrl(self.url)
-        self.request.setHeader(QtNetwork.QNetworkRequest.KnownHeaders.ContentTypeHeader,
-                               "application/json")
-
-        obj = QJsonDocument(params)
-        self.data = QtCore.QByteArray(obj.toJson())
-        self.manager.post(self.request, self.data)
-
 
 class GridAnnotation:
     def __init__(self, text='', is_active=True):

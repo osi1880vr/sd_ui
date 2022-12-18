@@ -14,6 +14,8 @@ def load_settings_json():
     gs.diffusion = SimpleNamespace(**settings.diffusion)
     gs.system = SimpleNamespace(**settings.system)
 
+
+
     settingsfile = 'configs/ainodes/settings.json'
     if os.path.exists(settingsfile):
         f = open("configs/ainodes/settings.json", "r")
@@ -22,11 +24,9 @@ def load_settings_json():
         user_diffusion = SimpleNamespace(**user_settings.diffusion)
         user_system = SimpleNamespace(**user_settings.system)
         for key, value in user_diffusion.__dict__.items():
-            if key in gs.diffusion.__dict__:
-                gs.diffusion.__dict__[key] = value
+            gs.diffusion.__dict__[key] = value
         for key, value in user_system.__dict__.items():
-            if key in gs.system.__dict__:
-                gs.system.__dict__[key] = value
+            gs.system.__dict__[key] = value
     save_settings_json()
 
 def load_default_settings_json():
@@ -51,7 +51,6 @@ def save_settings_json():
             "system": json.loads(system),
             "diffusion": json.loads(diffusion)
         }, write_file, indent=4)
-
 
 
 

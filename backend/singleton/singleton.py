@@ -21,8 +21,6 @@ T = 0
 lr = 0
 ti_grad_flag_switch = False
 textual_inversion_stop = False
-denoiser = None
-stop_all = False
 
 
 #hijack
