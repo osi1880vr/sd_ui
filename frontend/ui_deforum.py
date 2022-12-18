@@ -165,7 +165,7 @@ class Deforum_UI(QObject):
                     name = arg[0]
                     value = arg[1]
                     if name == 'aesthetic_weight': gs.aesthetic_weight = float(value)
-                    if name == 'T': gs.T = int(value)
+                    if name == 'gradient_steps': gs.T = int(value)
                     if name == 'selected_aesthetic_embedding': gs.diffusion.selected_aesthetic_embedding = str(value)
                     if name == 'slerp': gs.slerp = bool(value)
                     if name == 'aesthetic_imgs_text': gs.aesthetic_imgs_text = str(value)
