@@ -1,6 +1,11 @@
+import os
+
 from PySide6 import QtUiTools, QtCore
 from PySide6.QtCore import QFile, QObject, QEasingCurve, QRect
+from backend.singleton import singleton
+from backend.torch_gc import torch_gc
 
+gs = singleton
 
 class UniControl(QObject):
 
@@ -12,13 +17,6 @@ class UniControl(QObject):
         self.w = loader.load(file)
         file.close()
         self.initAnimation()
-
-        #self.w.hideAdvButton.clicked.connect(self.hideAdvanced_anim)
-        #self.w.hideAesButton.clicked.connect(self.hideAesthetic_anim)
-        #self.w.hideAnimButton.clicked.connect(self.hideAnimation_anim)
-        #self.w.hidePlottingButton.clicked.connect(self.hidePlotting_anim)
-        #self.w.showHideAll.clicked.connect(self.show_hide_all_anim)
-
 
         self.w.toggle_sampler.stateChanged.connect(self.hideSampler_anim)
         self.w.show_output_setup.stateChanged.connect(self.hideOutput_anim)
@@ -32,30 +30,182 @@ class UniControl(QObject):
         self.w.toggle_plugins.stateChanged.connect(self.hidePlugins_anim)
         self.w.toggle_colors.stateChanged.connect(self.hideColors_anim)
         self.w.toggle_grad.stateChanged.connect(self.hideGrad_anim)
-
+        self.w.toggle_negative_prompt.stateChanged.connect(self.toggle_n_prompt)
+        self.w.update_models.clicked.connect(self.update_model_list)
+        self.w.update_vae.clicked.connect(self.update_vae_list)
+        self.w.update_hyper.clicked.connect(self.update_hypernetworks_list)
+        self.w.update_aesthetics.clicked.connect(self.update_aesthetics_list)
+        self.w.stop_dream.clicked.connect(self.stop_all)
+        self.w.selected_model.currentIndexChanged.connect(self.select_new_model)
+        self.w.selected_vae.currentIndexChanged.connect(self.select_new_vae)
+        self.w.selected_hypernetwork.currentIndexChanged.connect(self.select_new_hypernetwork)
+        self.w.selected_aesthetic_embedding.currentIndexChanged.connect(self.select_new_aesthetic_embedding)
         self.w.negative_prompts.setVisible(False)
-
-
         self.init_anims()
         self.initAnim.start()
         self.hide_all()
-
-
         self.ui_unicontrol = UniControl_UI(self)
 
+    def stop_all(self):
+        gs.stop_all = True
 
-        x = "W"
+    def add_to_model_list(self, models):
+        for model in models:
+            if '.ckpt' in model:
+                self.w.selected_model.addItem(model)
 
-        getattr(self.w, x).setValue(15)
-        print("QSlider" in str(getattr(self.w, x)))
-        print("QCombobox" in str(getattr(self.w, x)))
-        print("QTextEdit" in str(getattr(self.w, x)))
+    def update_vae_list(self):
+        item_count = self.w.selected_vae.count()
+        model_items = []
+        current_vae = None
+        if item_count > 0:
+            current_text = self.w.selected_vae.currentText()
+            current_vae = current_text if current_text != '' else None
+        files = os.listdir(gs.system.vae_dir)
+        self.w.selected_vae.clear()
+        self.w.selected_vae.addItem('None')
+        for model in files:
+            if '.ckpt' in model:
+                self.w.selected_vae.addItem(model)
+        item_count = self.w.selected_vae.count()
+        model_items = []
+        for i in range(0, item_count-1):
+            model_items.append(self.w.selected_vae.itemText(i))
+        print(item_count)
+        current_vae = 'None' if current_vae == None else current_vae
+        if current_vae != 'None':
+            self.w.selected_vae.setCurrentIndex(model_items.index(current_vae))
+        else:
+            self.w.selected_vae.setCurrentIndex(0)
+
+    def select_new_vae(self):
+        current_text = self.w.selected_vae.currentText()
+        new_vae = 'None'
+        if current_text != 'None':
+            new_vae = os.path.join(gs.system.vae_path, current_text)
+        gs.diffusion.selected_vae = new_vae
+
+    def select_new_hypernetwork(self):
+        current_text = self.w.selected_hypernetwork.currentText()
+        new_hyper_net = 'None'
+        if current_text != 'None':
+            new_hyper_net = os.path.join(gs.system.hypernetwork_dir, current_text)
+        gs.diffusion.selected_hypernetwork = new_hyper_net
+
+    def select_new_aesthetic_embedding(self):
+        current_text = self.w.selected_aesthetic_embedding.currentText()
+        new_aesthetic_embedding = 'None'
+        if current_text != 'None':
+            new_aesthetic_embedding = os.path.join(gs.system.aesthetic_gradients_dir, current_text)
+        gs.diffusion.selected_aesthetic_embedding = new_aesthetic_embedding
+
+
+
+    def update_hypernetworks_list(self):
+        item_count = self.w.selected_hypernetwork.count()
+        model_items = []
+        current_hypernet = None
+        if item_count > 0:
+            current_text = self.w.selected_hypernetwork.currentText()
+            current_hypernet = current_text if current_text != '' else None
+        files = os.listdir(gs.system.hypernetwork_dir)
+        self.w.selected_hypernetwork.clear()
+        self.w.selected_hypernetwork.addItem('None')
+        for model in files:
+            if '.pt' in model:
+                self.w.selected_hypernetwork.addItem(model)
+        item_count = self.w.selected_hypernetwork.count()
+        model_items = []
+        for i in range(0, item_count):
+            model_items.append(self.w.selected_hypernetwork.itemText(i))
+        current_hypernet = 'None' if current_hypernet == None else current_hypernet
+        if current_hypernet != 'None':
+            self.w.selected_hypernetwork.setCurrentIndex(model_items.index(current_hypernet))
+        else:
+            self.w.selected_hypernetwork.setCurrentIndex(0)
+
+    def update_aesthetics_list(self):
+        item_count = self.w.selected_aesthetic_embedding.count()
+        model_items = []
+        current_aesthetic_embedding = None
+        if item_count > 0:
+            current_text = self.w.selected_aesthetic_embedding.currentText()
+            current_aesthetic_embedding = current_text if current_text != '' else None
+        files = os.listdir(gs.system.aesthetic_gradients_dir)
+        self.w.selected_aesthetic_embedding.clear()
+        self.w.selected_aesthetic_embedding.addItem('None')
+        for model in files:
+            if '.pt' in model:
+                self.w.selected_aesthetic_embedding.addItem(model)
+        item_count = self.w.selected_aesthetic_embedding.count()
+        model_items = []
+        for i in range(0, item_count):
+            model_items.append(self.w.selected_aesthetic_embedding.itemText(i))
+        current_aesthetic_embedding = 'None' if current_aesthetic_embedding == None else current_aesthetic_embedding
+        if current_aesthetic_embedding != 'None':
+            self.w.selected_aesthetic_embedding.setCurrentIndex(model_items.index(current_aesthetic_embedding))
+        else:
+            self.w.selected_aesthetic_embedding.setCurrentIndex(0)
+
+
+
+    def update_model_list(self):
+
+        if not os.path.isfile(gs.system.sd_model_file):
+            target_model = None
+        else:
+            if 'custom' in gs.system.sd_model_file:
+                target_model = 'custom/' + os.path.basename(gs.system.sd_model_file) # to work around the signal which triggers once we start changing the dropdowns items
+            else:
+                target_model = os.path.basename(gs.system.sd_model_file)
+
+        self.w.selected_model.clear()
+        files = os.listdir(gs.system.models_path)
+        files = [f for f in files if os.path.isfile(gs.system.models_path+'/'+f)] #Filtering only the files.
+        model_items = files
+        for model in files:
+            if '.ckpt' in model or 'safetensors' in model:
+                self.w.selected_model.addItem(model)
+        files = os.listdir(gs.system.custom_models_dir)
+        files = [f for f in files if os.path.isfile(gs.system.custom_models_dir + '/' +f)] #Filtering only the files.
+        model_items.append(files)
+        for model in files:
+            if '.ckpt' in model or 'safetensors' in model:
+                self.w.selected_model.addItem('custom/' + model)
+        item_count = self.w.selected_model.count()
+        model_items = []
+        for i in range(0, item_count):
+            model_items.append(self.w.selected_model.itemText(i))
+        if target_model is None:
+            if item_count > 0:
+                print('model from config does not exist therefore we choose first model from the loaded list')
+                self.w.selected_model.setCurrentIndex(0)
+            else:
+                print(f'you have no models installed in {gs.system.models_path} please install any model before you run this software, you can try to download a model using the download feature')
+        else:
+            if item_count > 0:
+                self.w.selected_model.setCurrentIndex(model_items.index(target_model))
+            else:
+                self.w.selected_model.setCurrentIndex(0)
+
+
+    def select_new_model(self):
+        new_model = os.path.join(gs.system.models_path,self.w.selected_model.currentText())
+        gs.system.sd_model_file = new_model
+        if 'sd' in gs.models:
+            del gs.models['sd']
+        torch_gc()
+
+    def toggle_n_prompt(self):
+        self.w.negative_prompts.setVisible(self.w.toggle_negative_prompt.isChecked())
 
     def hide_all(self):
+        self.init_anims()
         self.showAll = False
         self.show_hide_all_anim()
 
     def hideColors_anim(self):
+        self.init_anims()
         if self.colHidden is True:
             self.showColAnim.start()
         else:
@@ -63,6 +213,7 @@ class UniControl(QObject):
         self.colHidden = not self.colHidden
 
     def hideGrad_anim(self):
+        self.init_anims()
         if self.graHidden is True:
             self.showGraAnim.start()
         else:
@@ -70,6 +221,7 @@ class UniControl(QObject):
         self.graHidden = not self.graHidden
 
     def hideSampler_anim(self):
+        self.init_anims()
         if self.samHidden is True:
             self.showSamAnim.start()
         else:
@@ -77,6 +229,7 @@ class UniControl(QObject):
         self.samHidden = not self.samHidden
 
     def hideAesthetic_anim(self):
+        self.init_anims()
         if self.aesHidden is True:
             self.showAesAnim.start()
         else:
@@ -84,14 +237,18 @@ class UniControl(QObject):
         self.aesHidden = not self.aesHidden
 
     def hideAnimation_anim(self):
+        self.init_anims()
         if self.aniHidden is True:
             self.showAniAnim.start()
+            self.parent.timeline.show_anim_action()
         else:
             self.hideAniAnim.start()
+            self.parent.timeline.hide_anim_action()
         self.aniHidden = not self.aniHidden
 
 
     def hidePlotting_anim(self):
+        self.init_anims()
         if self.ploHidden is True:
             self.showPloAnim.start()
         else:
@@ -100,6 +257,7 @@ class UniControl(QObject):
 
 
     def hideOutput_anim(self):
+        self.init_anims()
         if self.opuHidden is True:
             self.showOpuAnim.start()
         else:
@@ -107,6 +265,7 @@ class UniControl(QObject):
         self.opuHidden = not self.opuHidden
 
     def hideInitImage_anim(self):
+        self.init_anims()
         if self.iniHidden is True:
             self.showIniAnim.start()
         else:
@@ -114,6 +273,7 @@ class UniControl(QObject):
         self.iniHidden = not self.iniHidden
 
     def hideMaskImage_anim(self):
+        self.init_anims()
         if self.masHidden is True:
             self.showMasAnim.start()
         else:
@@ -121,6 +281,7 @@ class UniControl(QObject):
         self.masHidden = not self.masHidden
 
     def hideOutpaint_anim(self):
+        self.init_anims()
         if self.outHidden is True:
             self.showOutAnim.start()
         else:
@@ -128,6 +289,7 @@ class UniControl(QObject):
         self.outHidden = not self.outHidden
 
     def hideEmbedding_anim(self):
+        self.init_anims()
         if self.enbHidden is True:
             self.showEmbAnim.start()
         else:
@@ -135,6 +297,7 @@ class UniControl(QObject):
         self.enbHidden = not self.enbHidden
 
     def hidePlugins_anim(self):
+        self.init_anims()
         if self.pinHidden is True:
             self.showPinAnim.start()
         else:
@@ -170,9 +333,6 @@ class UniControl(QObject):
             self.opuHidden = True
             self.hidePinAnim.start()
             self.pinHidden = True
-
-
-
             self.showAll = True
         elif self.showAll == True:
             self.showSamAnim.start()
@@ -208,6 +368,7 @@ class UniControl(QObject):
         self.showSamAnim.setStartValue(self.w.sampler_values.height())
         self.showSamAnim.setEndValue(self.w.height())
         self.showSamAnim.setEasingCurve(QEasingCurve.Linear)
+
         self.hideSamAnim = QtCore.QPropertyAnimation(self.w.sampler_values, b"maximumHeight")
         self.hideSamAnim.setDuration(500)
         self.hideSamAnim.setStartValue(self.w.sampler_values.height())
@@ -359,119 +520,3 @@ class UniControl_UI:
     def __init__(self, parent):
         self.parent = parent
         self.unicontrol = self.parent
-        self.connections()
-
-    def connections(self):
-
-
-
-
-        self.unicontrol.w.scale_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.scale.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.strength_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.strength.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.ddim_eta_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.ddim_eta.valueChanged.connect(self.update_float_scale_values)
-
-        #self.unicontrol.w.mask_blur_slider.valueChanged.connect(self.update_float_values)
-        #self.unicontrol.w.mask_blur.valueChanged.connect(self.update_float_scale_values)
-        #self.unicontrol.w.reconstruction_blur_slider.valueChanged.connect(self.update_float_values)
-        #self.unicontrol.w.reconstruction_blur.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.gradient_steps_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.gradient_steps.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.gradient_scale_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.gradient_scale.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.clip_scale_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.clip_scale.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.aesthetics_scale_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.aesthetics_scale.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.mean_scale_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.mean_scale.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.var_scale_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.var_scale.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.exposure_scale_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.exposure_scale.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.exposure_target_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.exposure_target.valueChanged.connect(self.update_float_scale_values)
-
-
-        self.unicontrol.w.colormatch_scale_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.colormatch_scale.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.ignore_sat_weight_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.ignore_sat_weight.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.cut_pow_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.cut_pow.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.clamp_grad_threshold_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.clamp_grad_threshold.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.clamp_start_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.clamp_start.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.clamp_stop_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.clamp_stop.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.mask_contrast_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.mask_contrast.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.mask_brightness_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.mask_brightness.valueChanged.connect(self.update_float_scale_values)
-        self.unicontrol.w.mask_overlay_blur_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.mask_overlay_blur.valueChanged.connect(self.update_float_scale_values)
-
-        self.unicontrol.w.midas_weight_slider.valueChanged.connect(self.update_float_values)
-        self.unicontrol.w.midas_weight.valueChanged.connect(self.update_float_scale_values)
-
-    def update_float_values(self):
-
-        self.unicontrol.w.scale.setValue(self.unicontrol.w.scale_slider.value()/10)
-        self.unicontrol.w.strength.setValue(self.unicontrol.w.strength_slider.value()/100)
-        self.unicontrol.w.ddim_eta.setValue(self.unicontrol.w.ddim_eta_slider.value()/10)
-        #self.unicontrol.w.mask_blur.setValue(self.unicontrol.w.mask_blur_slider.value())
-        #self.unicontrol.w.reconstruction_blur.setValue(self.unicontrol.w.reconstruction_blur_slider.value())
-        self.unicontrol.w.gradient_steps.setValue(self.unicontrol.w.gradient_steps_slider.value())
-        self.unicontrol.w.gradient_scale.setValue(self.unicontrol.w.gradient_scale_slider.value()/ 1000000000)
-        self.unicontrol.w.clip_scale.setValue(self.unicontrol.w.clip_scale_slider.value()/10)
-        self.unicontrol.w.aesthetics_scale.setValue( self.unicontrol.w.aesthetics_scale_slider.value())
-        self.unicontrol.w.mean_scale.setValue(self.unicontrol.w.mean_scale_slider.value()/10)
-        self.unicontrol.w.var_scale.setValue(self.unicontrol.w.var_scale_slider.value())
-        self.unicontrol.w.exposure_scale.setValue(self.unicontrol.w.exposure_scale_slider.value()/10)
-        self.unicontrol.w.exposure_target.setValue(self.unicontrol.w.exposure_target_slider.value()/10)
-        self.unicontrol.w.colormatch_scale.setValue(self.unicontrol.w.colormatch_scale_slider.value())
-        self.unicontrol.w.ignore_sat_weight.setValue(self.unicontrol.w.ignore_sat_weight_slider.value()/10)
-        self.unicontrol.w.cut_pow.setValue(self.unicontrol.w.cut_pow_slider.value()/1000)
-        self.unicontrol.w.clamp_grad_threshold.setValue(self.unicontrol.w.clamp_grad_threshold_slider.value())
-        self.unicontrol.w.clamp_start.setValue(self.unicontrol.w.clamp_start_slider.value()/10)
-        self.unicontrol.w.clamp_stop.setValue(self.unicontrol.w.clamp_stop_slider.value()/100)
-        self.unicontrol.w.mask_contrast.setValue(self.unicontrol.w.mask_contrast_slider.value())
-        self.unicontrol.w.mask_brightness.setValue(self.unicontrol.w.mask_brightness_slider.value())
-        self.unicontrol.w.mask_overlay_blur.setValue(self.unicontrol.w.mask_overlay_blur_slider.value())
-        self.unicontrol.w.midas_weight.setValue(self.unicontrol.w.midas_weight_slider.value())
-
-    def update_float_scale_values(self):
-        self.unicontrol.w.scale_slider.setValue(int(self.unicontrol.w.scale.value()*10))
-        self.unicontrol.w.strength_slider.setValue(int(self.unicontrol.w.strength.value()*100))
-        self.unicontrol.w.ddim_eta_slider.setValue(int(self.unicontrol.w.ddim_eta.value()*10))
-        #self.unicontrol.w.mask_blur_slider.setValue(int(self.unicontrol.w.mask_blur_slider.value()))
-        #self.unicontrol.w.reconstruction_blur_slider.setValue(int(self.unicontrol.w.reconstruction_blur_slider.value()))
-        self.unicontrol.w.gradient_steps_slider.setValue(int(self.unicontrol.w.gradient_steps.value()))
-        self.unicontrol.w.gradient_scale_slider.setValue(int(self.unicontrol.w.gradient_scale.value()* 1000000000))
-        self.unicontrol.w.clip_scale_slider.setValue(int(self.unicontrol.w.clip_scale.value()*10))
-        self.unicontrol.w.aesthetics_scale_slider.setValue( int(self.unicontrol.w.aesthetics_scale.value()))
-        self.unicontrol.w.mean_scale_slider.setValue(int(self.unicontrol.w.mean_scale.value()*10))
-        self.unicontrol.w.var_scale_slider.setValue(int(self.unicontrol.w.var_scale.value()))
-        self.unicontrol.w.exposure_scale_slider.setValue(int(self.unicontrol.w.exposure_scale.value()*10))
-        self.unicontrol.w.exposure_target_slider.setValue(int(self.unicontrol.w.exposure_target.value()*10))
-        self.unicontrol.w.colormatch_scale_slider.setValue(int(self.unicontrol.w.colormatch_scale.value()))
-        self.unicontrol.w.ignore_sat_weight_slider.setValue(int(self.unicontrol.w.ignore_sat_weight.value()*10))
-        self.unicontrol.w.cut_pow_slider.setValue(int(self.unicontrol.w.cut_pow.value()*1000))
-        self.unicontrol.w.clamp_grad_threshold_slider.setValue(int(self.unicontrol.w.clamp_grad_threshold.value()))
-        self.unicontrol.w.clamp_start_slider.setValue(int(self.unicontrol.w.clamp_start.value()*10))
-        self.unicontrol.w.clamp_stop_slider.setValue(int(self.unicontrol.w.clamp_stop.value()*100))
-        self.unicontrol.w.mask_contrast_slider.setValue(int(self.unicontrol.w.mask_contrast.value()))
-        self.unicontrol.w.mask_brightness_slider.setValue(int(self.unicontrol.w.mask_brightness.value()))
-        self.unicontrol.w.mask_overlay_blur_slider.setValue(int(self.unicontrol.w.mask_overlay_blur.value()))
-        self.unicontrol.w.midas_weight_slider.setValue(int(self.unicontrol.w.midas_weight.value()))

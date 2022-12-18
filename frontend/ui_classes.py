@@ -134,6 +134,7 @@ class Hypernetwork(QObject):
         file.open(QFile.ReadOnly)
         self.w = loader.load(file)
         file.close()
+
 class ThumbsUI(QObject):
 
     def __init__(self, *args, **kwargs):
@@ -252,11 +253,11 @@ class AnimSliders(QObject):
         self.w = loader.load(file)
         file.close()
 
-class PathSetup(QObject):
+class SystemSetup(QObject):
 
     def __init__(self, *args, **kwargs):
         loader = QtUiTools.QUiLoader()
-        file = QFile("frontend/ui_widgets/path_config.ui")
+        file = QFile("frontend/ui/system_config.ui")
         file.open(QFile.ReadOnly)
         self.w = loader.load(file)
         file.close()

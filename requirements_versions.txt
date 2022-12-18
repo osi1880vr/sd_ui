@@ -28,12 +28,11 @@ resize_right==0.0.2
 scikit_image==0.19.3
 setuptools==65.4.0
 timm==0.6.11
-torch==1.12.1
+torch==1.13.1
 torchdiffeq==0.2.3
-torchvision==0.13.1
+torchvision==0.14.1
 torchmetrics~=0.6.0
 tqdm==4.64.1
-transformers==4.19.2
 wandb==0.13.4
 pyside6~=6.4.0.1
 numpy~=1.23.1
@@ -121,3 +120,9 @@ torchsde
 fastapi
 uvicorn
 pydantic
+transformers~=4.24.0
+safetensors~=0.2.5
+test-tube
+diffusers~=0.10.2
+accelerate
+fire

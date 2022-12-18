@@ -1,9 +1,12 @@
 import gc, os, random, sys, time, traceback
 from contextlib import nullcontext
+from datetime import datetime
+
 import clip
 import numpy as np
 import pandas as pd
 import torch
+import safetensors.torch
 from PIL import ImageFilter
 from backend.devices import choose_torch_device
 from omegaconf import OmegaConf
@@ -28,6 +31,9 @@ from backend.hypernetworks import hypernetwork
 import backend.hypernetworks.modules.sd_hijack
 from backend.deforum.six.hijack import hijack_deforum
 from backend.singleton import singleton
+from backend.shared import model_killer
+from backend.deforum.six.seamless import configure_model_padding
+from backend.aesthetics.aesthetic_clip import AestheticCLIP
 
 gs = singleton
 
@@ -57,17 +63,18 @@ def load_model_from_config_lm(ckpt, verbose=False):
 
 class DeforumSix:
 
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
         self.root = None
         self.args = None
         self.anim_args = None
-        # self.parent = parent
-        self.device = 'cuda'
+        self.device = choose_torch_device()
         self.full_precision = False
+        self.prev_seamless = False
     def load_low_memory(self):
         if "model" not in gs.models:
             config = "optimizedSD/v1-inference.yaml"
-            ckpt = gs.system.sdPath
+            ckpt = gs.system.sd_model_file
             sd = load_model_from_config_lm(f"{ckpt}")
             li, lo = [], []
             for key, v_ in sd.items():
@@ -103,33 +110,64 @@ class DeforumSix:
             gs.models["model"].turbo = False
             gs.models["model"].cdevice = "cuda"
             gs.models["modelCS"].cond_stage_model.device = "cuda"
+            del li
+            del lo
             del sd
-
-
-    def run_pre_load_model_generation_specifics(self, config):
-
-
-        if gs.model_version in gs.system.gen_one_models and 2==1:
-            config.model.params.cond_stage_config.params.T = 10
-            config.model.params.cond_stage_config.params.lr = 0.0001
-            config.model.params.cond_stage_config.params.aesthetic_embedding_path = (
-                "models/embeddings/discostyle.pt"
-            )
 
     def run_post_load_model_generation_specifics(self):
 
         #print("Loading Hypaaaa")
         gs.model_hijack = backend.hypernetworks.modules.sd_hijack.StableDiffusionModelHijack()
 
-        #print("hijacking??")
+        print("hijacking??")
         gs.model_hijack.hijack(gs.models["sd"])
+        gs.model_hijack.embedding_db.load_textual_inversion_embeddings()
+
+        #gs.models["sd"].cond_stage_model = backend.aesthetics.modules.PersonalizedCLIPEmbedder()
+
+        aesthetic = AestheticCLIP()
+        aesthetic.process_tokens = gs.models["sd"].cond_stage_model.process_tokens
+        gs.models["sd"].cond_stage_model.process_tokens = aesthetic
+
 
     def get_autoencoder_version(self):
         return "sd-v1" #TODO this will be different for different models
 
-    def load_model_from_config(self, config, ckpt, verbose=False):
 
-        ckpt = gs.system.sdPath
+
+
+    def transform_checkpoint_dict_key(self, k):
+        chckpoint_dict_replacements = {
+            'cond_stage_model.transformer.embeddings.': 'cond_stage_model.transformer.text_model.embeddings.',
+            'cond_stage_model.transformer.encoder.': 'cond_stage_model.transformer.text_model.encoder.',
+            'cond_stage_model.transformer.final_layer_norm.': 'cond_stage_model.transformer.text_model.final_layer_norm.',
+        }
+        for text, replacement in chckpoint_dict_replacements.items():
+            if k.startswith(text):
+                k = replacement + k[len(text):]
+
+        return k
+
+    def get_state_dict_from_checkpoint(self, pl_sd):
+        pl_sd = pl_sd.pop("state_dict", pl_sd)
+        pl_sd.pop("state_dict", None)
+
+        sd = {}
+        for k, v in pl_sd.items():
+            new_key = self.transform_checkpoint_dict_key(k)
+
+            if new_key is not None:
+                sd[new_key] = v
+
+        pl_sd.clear()
+        pl_sd.update(sd)
+
+        return pl_sd
+
+    def load_model_from_config(self, config=None, ckpt=None, verbose=False):
+
+        if ckpt is None:
+            ckpt = gs.system.sd_model_file
 
         # loads config.yaml with the name of the model
         # the config yaml has to be provided with pöropper naming,
@@ -139,39 +177,55 @@ class DeforumSix:
         # it is important that you give the right version hint based on the SD model version
         # if it is some custom model based on some version of SD we need to have the SD
         # version not the version of the custom model
-        config_yaml_name = os.path.splitext(gs.system.sdPath)[0] + '.yaml'
-
-        print(config_yaml_name)
-
-        if os.path.isfile(config_yaml_name):
-            config = config_yaml_name
+        #if config is None:
+        config_yaml_name = os.path.splitext(ckpt)[0] + '.yaml'
+        #print(config_yaml_name)
+        #else:
+        #    config_yaml_name = config
+        #print(os.path.isfile(config_yaml_name))
+        #if os.path.isfile(config_yaml_name):
+        config = config_yaml_name
 
         if "sd" not in gs.models:
-            print(f"Loading model from {ckpt} with config {config}")
+            self.prev_seamless = False
+            if verbose:
+                print(f"Loading model from {ckpt} with config {config}")
             config = OmegaConf.load(config)
 
-            print(config.model['params']['unet_config']['params'])
+            #print(config.model['params'])
 
             if 'num_heads' in config.model['params']['unet_config']['params']:
-                print('v 1.5 found')
                 gs.model_version = '1.5'
             elif 'num_head_channels' in config.model['params']['unet_config']['params']:
-                print('v 2.0 found')
-                gs.model_version = '2.0'
+                gs.model_version = '2.x'
+            if config.model['params']['conditioning_key'] == 'hybrid-adm':
+                gs.model_version = '2.x'
+            if 'parameterization' in config.model['params']:
+                gs.model_resolution = 768
+            else:
+                gs.model_resolution = 512
             #if not 'model_version' in config:
             #    print('you must provide a model_version in the config yaml or we can not figure how to tread your model')
             #    return -1
+            print(f'v {gs.model_version} found with resolution {gs.model_resolution}')
 
             #gs.model_version = config.model_version
-            print(gs.model_version)
+            if verbose:
+                print(gs.model_version)
 
-            self.run_pre_load_model_generation_specifics(config)
+            checkpoint_file = ckpt
+            _, extension = os.path.splitext(checkpoint_file)
+            map_location="cpu"
+            if extension.lower() == ".safetensors":
+                pl_sd = safetensors.torch.load_file(checkpoint_file, device=map_location)
+            else:
+                pl_sd = torch.load(checkpoint_file, map_location=map_location)
+            #pl_sd = torch.load(ckpt, map_location="cpu")
 
-
-            pl_sd = torch.load(ckpt, map_location="cpu")
             if "global_step" in pl_sd:
                 print(f"Global Step: {pl_sd['global_step']}")
-            sd = pl_sd["state_dict"]
+            sd = self.get_state_dict_from_checkpoint(pl_sd)
+            #sd = pl_sd["state_dict"]
 
             model = instantiate_from_config(config.model)
             m, u = model.load_state_dict(sd, strict=False)
@@ -183,7 +237,14 @@ class DeforumSix:
                 print(u)
             model.half()
             gs.models["sd"] = model
-            gs.models["sd"].cond_stage_model.device = 'cuda'
+            gs.models["sd"].cond_stage_model.device = self.device
+            #gs.models["sd"].embedding_manager = EmbeddingManager(gs.models["sd"].cond_stage_model)
+            #embedding_path = '001glitch-core.pt'
+            #if embedding_path is not None:
+            #    gs.models["sd"].embedding_manager.load(
+            #        embedding_path
+            #    )
+
             for m in gs.models["sd"].modules():
                 if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
                     m._orig_padding_mode = m.padding_mode
@@ -199,17 +260,16 @@ class DeforumSix:
 
 
             if gs.model_version == '1.5':
-              self.run_post_load_model_generation_specifics()
+                self.run_post_load_model_generation_specifics()
 
             gs.models["sd"].eval()
 
             # todo make this 'cuda' a parameter
-            gs.models["sd"].to("cuda")
+            gs.models["sd"].to(self.device)
             # todo why we do this here?
-            from  backend.aesthetics import modules
-            print('PersonalizedCLIPEmbedder', backend.aesthetics.modules.PersonalizedCLIPEmbedder)
-            vae_name = os.path.splitext(gs.system.sdPath)[0] + '.pt'
-            self.load_vae(vae_name)
+            from backend.aesthetics import modules
+            if gs.diffusion.selected_vae != 'None':
+                self.load_vae(gs.diffusion.selected_vae)
 
     def load_vae(self, vae_file=None):
         global first_load, vae_dict, vae_list, loaded_vae_file
@@ -251,7 +311,7 @@ class DeforumSix:
             gs.models["inpaint"].to("cpu")
             del gs.models["inpaint"]
             torch_gc()
-        weights = gs.system.sdPath
+        weights = gs.system.sd_model_file
         config = 'configs/stable-diffusion/v1-inference-a.yaml'
         embedding_path = None
 
@@ -291,7 +351,7 @@ class DeforumSix:
             torch_gc()
         """Load and initialize the model from configuration variables passed at object creation time"""
         if "inpaint" not in gs.models:
-            weights = 'models/sd-v1-5-inpaint.ckpt'
+            weights = gs.system.sd_inpaint_model_file
             config = 'configs/stable-diffusion/inpaint.yaml'
             embedding_path = None
 
@@ -461,7 +521,7 @@ class DeforumSix:
                         prompt="",
                         negative_prompts=None,
                         hires=None,
-                        use_hypernetwork=None,
+                        #use_hypernetwork=None,
                         apply_strength=0,
                         apply_circular=False,
                         lowmem=False
@@ -469,17 +529,49 @@ class DeforumSix:
         #if gs.system.xformer == True:
         #    backend.hypernetworks.modules.sd_hijack.apply_optimizations()
         gs.system.device = choose_torch_device()
-        print(f'----------------------------------------------------------------')
-        print(f'-       Deforum  0.6  Art Generator                            -')
-        print(f'-            animation mode: {animation_mode}                  -')
-        print(f'-            steps: {steps}                                    -')
-        print(f'-            width: {W}                                        -')
-        print(f'-            height: {H}                                       -')
-        print(f'-            hires: {hires}                                    -')
-        print(f'-                                                              -')
-        print(f'----------------------------------------------------------------')
+
+
+        print(f'-       Deforum  0.6  Art Generator                            ')
+        print(f'-            animation mode: {animation_mode}                  ')
+        print(f'-            steps: {steps}                                    ')
+        print(f'-            width: {W}                                        ')
+        print(f'-            height: {H}                                       ')
+        print(f'-            hires: {hires}                                    ')
+        print(f'-                                                              ')
+
+
+
+        #print(f'animation mode: {animation_mode}')
+
+        if precision == 'autocast' and device != "cpu":
+            precision_scope = autocast
+        else:
+            precision_scope = nullcontext
+
+
+        hijack_deforum.deforum_hijack()
+
+        [args, anim_args, root] = prepare_args(locals())
+        root.device = self.device
+        device = self.device
+        for key, value in anim_args.__dict__.items():
+            try:
+                anim_args.__dict__[key] = self.parent.params.__dict__[key]
+                print(f"settings {key} from {value} to {self.parent.params.__dict__[key]}")
+            except:
+                pass
+        for key, value in args.__dict__.items():
+            try:
+                args.__dict__[key] = self.parent.params.__dict__[key]
+            except:
+                pass
+        print(args.make_grid)
+        print(self.parent.params.make_grid)
+        #if args.seamless == False and self.prev_seamless == True:
+        #    self.prev_seamless = False
+        #    model_killer()
         if lowmem == True:
-            print(f'-                 Low Memory Mode                             -')
+            print(f'-                 Low Memory Mode                             ')
             if "sd" in gs.models:
                 del gs.models["sd"]
             if "inpaint" in gs.models:
@@ -487,6 +579,7 @@ class DeforumSix:
             if "custom_model_name" in gs.models:
                 del gs.models["custom_model_name"]
                 gs.models["sd"] = None
+            if 'model' not in gs.models:
                 self.load_low_memory()
         else:
             if "model" in gs.models:
@@ -500,27 +593,45 @@ class DeforumSix:
                 return check
 
 
-        #print(f'animation mode: {animation_mode}')
 
-        if precision == 'autocast' and device != "cpu":
-            precision_scope = autocast
-        else:
-            precision_scope = nullcontext
-
-
-        hijack_deforum.deforum_hijack()
-
-
-        if use_hypernetwork is not None:
-            hypernetwork.load_hypernetwork(use_hypernetwork)
+        if gs.diffusion.selected_hypernetwork != 'None':
+            hypernetwork.load_hypernetwork(gs.diffusion.selected_hypernetwork)
             hypernetwork.apply_strength(apply_strength)                          #1.0, "Hypernetwork strength", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.001}),
             gs.model_hijack.apply_circular(False)
             gs.model_hijack.clear_comments()
 
-        W, H = map(lambda x: x - x % 64, (W, H))  # resize to integer multiple of 64
+        #W, H = map(lambda x: x - x % 64, (W, H))  # resize to integer multiple of 64
 
-        [args, anim_args, root] = prepare_args(locals())
-        #print(args, anim_args)
+
+
+
+        #if args.seamless == True and self.prev_seamless == False:
+
+        #print("Running Seamless sampling...")
+        seamless = args.seamless
+        seamless_axes = args.axis
+        if lowmem == False:
+            configure_model_padding(gs.models["sd"], seamless, seamless_axes)
+        elif lowmem == True:
+            configure_model_padding(gs.models["model"], seamless, seamless_axes)
+        #self.prev_seamless = True
+        """
+        for key, value in root.__dict__.items():
+            try:
+                root.__dict__[key] = self.parent.params.__dict__[key]
+            except:
+                pass"""
+
+        if gs.diffusion.selected_aesthetic_embedding != 'None':
+            gs.models["sd"].cond_stage_model.process_tokens.set_aesthetic_params(
+                aesthetic_lr=gs.lr,
+                aesthetic_weight=gs.aesthetic_weight,
+                aesthetic_steps=gs.T,
+                image_embs_name=gs.diffusion.selected_aesthetic_embedding,
+                aesthetic_slerp=gs.slerp,
+                aesthetic_imgs_text=gs.aesthetic_imgs_text,
+                aesthetic_slerp_angle=gs.slerp_angle,
+                aesthetic_text_negative=gs.aesthetic_text_negative)
 
         if hires:
             args.hiresstr = args.strength
@@ -576,11 +687,15 @@ class DeforumSix:
             anim_args.max_frames = 1
         elif anim_args.animation_mode == 'Video Input':
             args.use_init = True
-
+        args.timestring = datetime.now().strftime("%Y%m%d-%H%M%S")
         # clean up unused memory
         torch_gc()
-        anim_args.animation_mode = 'None'
+
         args.clip_prompt = ['test']
+
+        #print('anim_args.animation_mode', anim_args.animation_mode)
+        #print('anim_args.translation_x', anim_args.translation_x)
+        paths = []
         # dispatch to appropriate renderer
         if anim_args.animation_mode == '2D' or anim_args.animation_mode == '3D':
             render_animation(args, anim_args, animation_prompts, root, image_callback=image_callback, step_callback=step_callback)
@@ -596,10 +711,14 @@ class DeforumSix:
         fps = 12  # @param {type:"number"}
         # @markdown **Manual Settings**
         use_manual_settings = False  # @param {type:"boolean"}
-        image_path = gs.system.txt2vidSingleFrame  # @param {type:"string"}
-        mp4_path = gs.system.txt2vidOut  # @param {type:"string"}
+        image_path = gs.system.txt2vid_single_frame_dir  # @param {type:"string"}
+        mp4_path = gs.system.txt2vid_out_dir  # @param {type:"string"}
         render_steps = False  # @param {type: 'boolean'}
         path_name_modifier = "x0_pred"  # @param ["x0_pred","x"]
+        file = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+
+        skip_video_for_run_all = True if anim_args.max_frames < 2 else False
 
         if skip_video_for_run_all == True:
             print('Skipping video creation, uncheck skip_video_for_run_all if you want to run it')
@@ -620,16 +739,17 @@ class DeforumSix:
                     newest_dir = max(all_step_dirs, key=os.path.getmtime)
                     image_path = os.path.join(newest_dir, fname)
                     print(f"Reading images from {image_path}")
+                    print(args.timestring)
                     mp4_path = os.path.join(newest_dir, f"{args.timestring}_{path_name_modifier}.mp4")
                     max_frames = str(args.steps)
                 else:  # render images for a video
                     image_path = os.path.join(args.outdir, f"{args.timestring}_%05d.png")
-                    mp4_path = os.path.join(mp4_path, f"{args.timestring}.mp4")
+                    mp4_path = os.path.join(mp4_path, f"{file}.mp4")
                     max_frames = str(anim_args.max_frames)
 
             # make video
             cmd = [
-                gs.system.ffmpegPath,
+                gs.system.ffmpeg_file,
                 '-y',
                 '-vcodec', 'png',
                 '-r', str(fps),
@@ -657,6 +777,7 @@ class DeforumSix:
         hijack_deforum.undo_hijack()
         del args
         del anim_args
+        del root
 
         if lowmem == True:
             print('Low Memory Mode enabled')
@@ -665,8 +786,8 @@ class DeforumSix:
             gs.models["modelFS"].to("cpu")
             gs.models["sd"] = None
         else:
-            gs.models["sd"].cond_stage_model.to("cpu")
-            gs.models["sd"].to("cpu")
+            #gs.models["sd"].cond_stage_model.to("cpu")
+            #gs.models["sd"].to("cpu")
             gs.models["model"] = None
             gs.models["modelCS"] = None
             gs.models["modelFS"] = None
@@ -675,7 +796,7 @@ class DeforumSix:
             del gs.models["modelFS"]
 
         torch_gc()
-        return paths
+        return paths # this gets images via colab api
 
     def render_animation_new(self):
 
@@ -725,7 +846,9 @@ class DeforumSix:
         img = Image.open(init_image)
 
         # mask_img = img.split()[-1]
-
+        #print(f"using seed: {seed}")
+        if seed == 0 or seed == -1 or seed == '':
+            seed = seed_everything()
         width = img.size[0]
         height = img.size[1]
         for i in range(0, width):  # process all pixels
@@ -756,12 +879,16 @@ class DeforumSix:
         os.makedirs(sample_path, exist_ok=True)
         base_count = len(os.listdir(sample_path))
         base_name = f"{random.randint(10000000, 99999999)}_{seed}_"
+
+        print(F"WITH INPAINT : {with_inpaint}")
+
         if with_inpaint == False:
-            self.load_model()
+            self.load_model_from_config()
+            gs.models["sd"].to('cuda')
             print(f"txt2img seed: {seed}   steps: {steps}  prompt: {prompt}")
             print(f"size:  {W}x{H}")
 
-            self.torch_gc()
+            torch_gc()
 
             # seeds = torch.randint(-2 ** 63, 2 ** 63 - 1, [accelerator.num_processes])
             # torch.manual_seed(seeds[accelerator.process_index].item())
@@ -891,7 +1018,7 @@ class DeforumSix:
                                 image = sampleToImage(x_sample)
                                 fpath = os.path.join(sample_path, f"{base_name}_{base_count:05}.png")
                                 image.save(fpath)
-                                self.temppath = fpath
+                                gs.temppath = fpath
                                 if image_callback is not None:
                                     image_callback(image)
                                 # save_image(
@@ -940,7 +1067,7 @@ class DeforumSix:
                 callback=step_callback)
             fpath = os.path.join(sample_path, f"{base_name}_{base_count:05}.png")
             result[0].save(fpath, 'PNG')
-            self.temppath = fpath
+            gs.temppath = fpath
             image_callback(result[0])
 
         # global plms_sampler
@@ -980,11 +1107,14 @@ class DeforumSix:
         torch_gc()
 def inpaint(sampler, image, mask, prompt, seed, scale, ddim_steps, device, mask_for_reconstruction, masked_image_for_blend, num_samples=1, w=512, h=512, callback=None):
     #model = sampler.model
+    #gs.models["inpaint"].to(device)
 
     prng = np.random.RandomState(seed)
     start_code = prng.randn(num_samples, 4, h//8, w//8)
     start_code = torch.from_numpy(start_code).to(device=device, dtype=torch.float16)
 
+    #gs.models["inpaint"].model.to("cpu")
+    #gs.models["inpaint"].cond_stage_model.to(device)
     with torch.no_grad():
         with torch.autocast("cuda"):
             batch = make_batch_sd(image, mask, txt=prompt, device=device, num_samples=num_samples)
@@ -1009,6 +1139,8 @@ def inpaint(sampler, image, mask, prompt, seed, scale, ddim_steps, device, mask_
             uc_cross = gs.models["inpaint"].get_unconditional_conditioning(num_samples, "")
             uc_full = {"c_concat": [c_cat], "c_crossattn": [uc_cross]}
 
+            #gs.models["inpaint"].cond_stage_model.to("cpu")
+            #gs.models["inpaint"].model.to(device)
             shape = [gs.models["inpaint"].channels, h//8, w//8]
             samples_cfg, intermediates = sampler.sample(
                 ddim_steps,
@@ -1052,7 +1184,7 @@ def inpaint(sampler, image, mask, prompt, seed, scale, ddim_steps, device, mask_
 
     #result = [Image.fromarray(img.astype(np.uint8)) for img in result]
     # result = [put_watermark(img for img in result]
-
+    #gs.models["inpaint"].to("cpu")
     return result
 
 
@@ -1089,7 +1221,7 @@ def load_vae_dict(model, vae_dict_1=None):
         model.first_stage_model.load_state_dict(vae_dict_1)
     else:
         restore_base_vae()
-    model.first_stage_model.to('cuda')
+    model.first_stage_model.to(choose_torch_device())
 
 def get_base_vae(model):
     if base_vae is not None and checkpoint_info == model.sd_checkpoint_info and model:
