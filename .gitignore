@@ -156,6 +156,7 @@ data/models/custom/*.safetensor
 data/models/*.yaml
 data/models/*.ckpt
 data/models/*.safetensor
+data/diffuserModels/*.*
 .idea/aiPixels-pyside.iml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/inspectionProfiles/Project_Default.xml
