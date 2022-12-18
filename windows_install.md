@@ -53,4 +53,3 @@ so if any worked acording to the plan and the experience of the guy writing the 
 If for what ever reason you did not get here and you experience any issue please feel free to meet us in our discord server and we will try to help you. We are not available 24/7 so please give us little time to come back to you, we will do, so much I can promisse you.
 
 If you are ready to render, all I can tell anymore is be happy have fun and create some awesome art, maybe you share some of it in our showroom.
-Also youre welcome to join us on our patreon page which you will find here: https://www.patreon.com/aiPixels

@@ -20,6 +20,7 @@ import backend.interrogate
 from backend.guess_prompt import get_prompt_guess_img
 from backend.hypernetworks.modules import images
 from backend.sdv2.superresolution import run_sr
+
 gs = singleton
 
 interrogator = backend.interrogate.InterrogateModels("interrogate")
@@ -103,9 +104,8 @@ class ImageLab():  # for signaling, could be a QWidget  too
         self.imageLab.w.alphaNew.valueChanged.connect(self.update_alpha)
         self.imageLab.w.select_interrogation_output_folder.clicked.connect(self.set_interrogation_output_folder)
         self.imageLab.w.run_interrogation.clicked.connect(self.signal_run_interrogation)
-        self.imageLab.w.selected_model.clicked.connect(self.select_accel_model)
-        self.imageLab.w.run_volta_accel.clicked.connect(self.signal_run_volta_accel)
         self.imageLab.w.upscale_20.clicked.connect(self.run_upscale_20)
+
 
 
     def run_upscale_20(self, progress_callback=False):
@@ -120,6 +120,18 @@ class ImageLab():  # for signaling, could be a QWidget  too
                eta=self.imageLab.w.ddim_eta.value(),
                noise_level=self.imageLab.w.noise_level.value()
         )
+
+    # todo get this working on linux boxes
+    def run_volta_accel(self, progress_callback=False):
+        args = {}
+        args['model_path'] = self.imageLab.w.accel_path.text()
+        args = SimpleNamespace(**args)
+        args.image_size = (512, 512)
+        args.max_seq_length = 77
+        args.max_gpu_memory = self.imageLab.w.max_gpu_memory.value()
+
+        convert_to_onnx(args)
+        convert_to_trt(args)
 
     def signal_run_volta_accel(self):
         self.signals.run_volta_accel.emit()

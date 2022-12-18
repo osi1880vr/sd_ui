@@ -7,7 +7,7 @@ import backend.hypernetworks.modules.textual_inversion.textual_inversion
 import ldm.modules.attention
 import ldm.modules.diffusionmodules.model
 import ldm.modules.diffusionmodules.util
-from backend.devices import choose_torch_device
+from backend.devices import torch_gc,choose_torch_device
 from backend.hypernetworks.modules import prompt_parser, sd_hijack_optimizations
 
 ddim_timesteps = ldm.modules.diffusionmodules.util.make_ddim_timesteps

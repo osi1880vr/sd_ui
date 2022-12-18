@@ -1,12 +1,6 @@
 # aiPixels - Stable Diffusion Desktop
 
-<p align="left">
-<a href="https://github.com/XmYx/aiPixels-pyside/commits"><img alt="Last Commit" src="https://img.shields.io/github/last-commit/XmYx/aiPixels-pyside"></a>
-<a href="https://github.com/XmYx/aiPixels-pyside/issues"><img alt="GitHub issues" src="https://img.shields.io/github/issues/XmYx/aiPixels-pyside"></a>
-<a href="https://github.com/XmYx/aiPixels-pyside/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/XmYx/aiPixels-pyside"></a>
-<a href="https://github.com/XmYx/aiPixels-pyside/network"><img alt="GitHub forks" src="https://img.shields.io/github/forks/XmYx/aiPixels-pyside"></a>
-<a href="https://github.com/XmYx/aiPixels-pyside/blob/main/aiPixels_webAPI_colab_v0_0_2_public.ipynb"><img alt="Colab" src="https://colab.research.google.com/assets/colab-badge.svg"></a>  
-</p>
+
 
 Colab API Server added with limited functionality
 

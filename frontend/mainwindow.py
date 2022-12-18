@@ -78,7 +78,7 @@ class MainWindow(QMainWindow):
         self.animKeyEditor = AnimKeyEditor()
 
         self.resize(1280, 800)
-        
+
         self.widgets = {}
         self.current_widget = 'unicontrol'
         self.widgets[self.current_widget] = UniControl(self)
@@ -592,6 +592,7 @@ class MainWindow(QMainWindow):
         self.widgets[self.current_widget].w.toggle_aesthetics.setVisible(False)
         self.widgets[self.current_widget].w.toggle_embeddings.setVisible(False)
         self.widgets[self.current_widget].w.toggle_plugins.setVisible(False)
+        self.widgets[self.current_widget].w.multi_dim_prompt.setVisible(False)
 
         #self.widgets[self.current_widget].w.showHideAll.setVisible(False)
         self.widgets[self.current_widget].w.H.setVisible(False)
@@ -646,7 +647,8 @@ class MainWindow(QMainWindow):
             self.widgets[self.current_widget].w.toggle_embeddings.setVisible(True)
             self.widgets[self.current_widget].w.toggle_plugins.setVisible(True)
             self.widgets[self.current_widget].w.H.setVisible(True)
-            #self.widgets[self.current_widget].w.H_slider.setVisible(True)
+            self.widgets[self.current_widget].w.multi_dim_prompt.setVisible(True)
+        #self.widgets[self.current_widget].w.H_slider.setVisible(True)
             self.widgets[self.current_widget].w.W.setVisible(True)
             #self.widgets[self.current_widget].w.W_slider.setVisible(True)
             self.widgets[self.current_widget].w.cfglabel.setVisible(True)
