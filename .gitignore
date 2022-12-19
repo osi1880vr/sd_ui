@@ -135,7 +135,9 @@ frontend/example_calculator/.DS_Store
 /configs/aiPixels/last_prompt.txt
 /configs/aiPixels/prompt_history.txt
 /configs/aiPixels/prompt_history_raw.txt
-/configs/aiPixels/settings.json
+configs/aiPixels - Copy/last_prompt.txt
+configs/aiPixels - Copy/settings.json
+configs/aiPixels/settings.json
 /output/*
 /outputs/*
 /.idea/codeStyles/
@@ -156,7 +158,6 @@ data/models/custom/*.safetensor
 data/models/*.yaml
 data/models/*.ckpt
 data/models/*.safetensor
-data/diffuserModels/*.*
 .idea/aiPixels-pyside.iml
 .idea/inspectionProfiles/profiles_settings.xml
 .idea/inspectionProfiles/Project_Default.xml
@@ -172,4 +173,5 @@ frontend/session_params.py.bak
 *.pt
 data/output/*
 tmp/*
-.idea
+/data/diffuserModels/
+/cache/

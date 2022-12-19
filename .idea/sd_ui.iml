@@ -3,11 +3,11 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$" />
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (ai-pixel)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PackageRequirementsSettings">
     <option name="requirementsPath" value="G:\sd\_aipixel\requirements_versions.txt" />
-    <option name="removeUnused" value="true" />
+    <option name="versionSpecifier" value="Greater or equal (&gt;=x.y.z)" />
   </component>
 </module>

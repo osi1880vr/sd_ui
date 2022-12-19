@@ -622,6 +622,9 @@ class DeforumSix:
             except:
                 pass"""
 
+        print('gs.aesthetic_weight', gs.aesthetic_weight)
+        print('gs.aesthetic_weight', gs.aesthetic_weight)
+
         if gs.diffusion.selected_aesthetic_embedding != 'None':
             gs.models["sd"].cond_stage_model.process_tokens.set_aesthetic_params(
                 aesthetic_lr=gs.lr,
