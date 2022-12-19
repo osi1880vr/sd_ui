@@ -2,5 +2,15 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/AdaBins" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/BLIP" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/CodeFormer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/MiDaS" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/improved-aesthetic-predictor" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/k-diffusion" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/pytorch3d-lite" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/realesrgan" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/taming-transformers" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/volta-ml" vcs="Git" />
   </component>
 </project>
