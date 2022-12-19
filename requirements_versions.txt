@@ -120,9 +120,7 @@ transformers>=4.25.1
 diffusers>=0.10.2
 safetensors>=0.2.6
 k-diffusion
-xformers>=0.0.14.dev0
-
+xformers
 torchvision>=0.13.1
 gdown>=4.6.0
 torchdiffeq>=0.2.3
-zlib>=1.2.13
