@@ -124,3 +124,4 @@ xformers
 torchvision>=0.13.1
 gdown>=4.6.0
 torchdiffeq>=0.2.3
+fire>=0.5.0
