@@ -1,13 +1,12 @@
 name: ai-pixel
 channels:
+  - conda-forge
+  - nvidia
   - pytorch
-  - defaults
 dependencies:
+  - nvidia::cudatoolkit=11.3
   - python=3.10
-  - pip 22.2.2
-  - cudatoolkit=11.3
-  - pytorch=1.13.0
-  - torchvision=0.14.0
-  - numpy=1.23.1
+  - pytorch::pytorch
+  - torchvision==0.13.1
   - pip:
         - PySide6
