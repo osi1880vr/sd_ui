@@ -1,14 +1,18 @@
+import copy
+import os
 import random
+import shutil
 
 from PySide6 import QtUiTools
 from PySide6.QtCore import QFile, QObject
 
-from frontend.session_params import SessionParams
+from plugins.autotest.image_compare import img_compare
 from backend.singleton import singleton
 gs = singleton
 
 class AutoTest(QObject):
     def __init__(self, *args, **kwargs):
+        self.params = None
         loader = QtUiTools.QUiLoader()
         file = QFile("plugins/autotest/autotest.ui")
         file.open(QFile.ReadOnly)
@@ -21,6 +25,8 @@ class aiPixelsPlugin():
         self.default_params = None
         self.autotest = AutoTest()
         self.get_settings()
+        self.path = 'plugins/autotest'
+        self.create_output_folder()
 
     def initme(self):
         print("Initializing Auto Test")
@@ -189,10 +195,10 @@ class aiPixelsPlugin():
                                          apply_circular=self.params.apply_circular)
 
     def get_settings(self):
-        self.sessionparams = SessionParams(self.parent)
-        self.sessionparams.create_diffusion_params()
-        self.sessionparams.create_system_params()
-        self.default_params = self.sessionparams.update_params()
+        self.parent.sessionparams.create_diffusion_params()
+        self.parent.sessionparams.create_system_params()
+        self.default_params = self.parent.sessionparams.update_params()
+        self.parent.deforum_ui.set_aesthetics()
 
     def connections(self):
         self.autotest.w.run_all_tests.clicked.connect(self.run_all_tests)
@@ -201,12 +207,166 @@ class aiPixelsPlugin():
     def get_new_seed(self):
         return random.randint(0, 2 ** 32 - 1)
 
-    def run_all_tests(self):
-        self.params = self.default_params
-        self.params.seed = self.get_new_seed()
+    def clean_dir(self, dir):
+        if os.path.isdir(dir):
+            shutil.rmtree(dir)
 
+    def create_output_folder(self):
+        dir_name = os.path.join(self.path, 'testresults')
+        if os.path.isdir(dir_name):
+            pass
+            #clean_dir(dir_name)
+        self.image_out_dir = os.path.join(dir_name, 'image_out')
+        os.makedirs(self.image_out_dir, exist_ok=True)
+
+    def get_files(self, path):
+        from os import walk
+        return[os.path.join(dp, f) for dp, dn, filenames in os.walk(path) for f in filenames if os.path.splitext(f)[1] == '.png']
+
+    def reset_params(self):
+        self.params = copy.deepcopy(self.default_params)
+
+    def test_1(self):
+        self.reset_params()
+        self.params.prompts = 'Portrait of Emma Stone, detailed, concept art, Trending on Artstation'
+        self.params.seed = 3493545648 #self.get_new_seed()
+        self.params.outdir = os.path.join(self.image_out_dir, 'test_1')
+        self.clean_dir(self.params.outdir)
+        os.makedirs(self.params.outdir, exist_ok=True)
+        self.params.save_settings = False
         print(self.params.seed)
         self.run_it()
+        files = self.get_files(self.params.outdir)
+        if len(files) > 0:
+            img1 = files[0]
+            img2 = 'plugins/autotest/expected/test_1/result_1.png'
+            check = int(img_compare(img1, img2))
+            print('check test 1', check)
+            if check < 600000: #695998
+                print(f'\033[91mfail test 1 check = {check} > 600000')
+                print('\033[00m')
+                return False
+            else:
+                print(f'\033[92mpass test 1 check = {check} > 600000')
+                print('\033[92m pass test 1')
+                print('\033[00m')
+                return True
+
+    def test_2(self):
+        self.reset_params()
+        self.params.seed = 1445889970 #self.get_new_seed()
+        self.params.prompts = 'a corgi'
+        self.params.outdir = os.path.join(self.image_out_dir, 'test_2')
+        self.clean_dir(self.params.outdir)
+        os.makedirs(self.params.outdir, exist_ok=True)
+        self.params.save_settings = False
+        self.run_it()
+        files = self.get_files(self.params.outdir)
+        if len(files) > 0:
+            img1 = files[0]
+            img2 = 'plugins/autotest/expected/test_2/result_1.png'
+            check = img_compare(img1, img2)
+            print('check test 2', check)
+            if check < 400000: #695998
+                print(f'\033[91mfail test 2 check = {check} < 400000')
+                print('\033[00m')
+                return False
+            else:
+                print(f'\033[92mpass test 2 check = {check} > 400000')
+                print('\033[92m pass test 2')
+                print('\033[00m')
+                return True
+
+    def test_3(self):
+        self.reset_params()
+        self.params.seed = 3493545648 #self.get_new_seed()
+        self.params.use_init = True
+        self.params.init_image = 'plugins/autotest/expected/test_1/result_1.png'
+        self.params.strength = 0.1
+        self.params.prompts = 'oil on canvas'
+        self.params.outdir = os.path.join(self.image_out_dir, 'test_3')
+        self.clean_dir(self.params.outdir)
+        os.makedirs(self.params.outdir, exist_ok=True)
+        self.params.save_settings = False
+        self.run_it()
+        files = self.get_files(self.params.outdir)
+        if len(files) > 0:
+            img1 = files[0]
+            img2 = 'plugins/autotest/expected/test_3/result_1.png'
+            check = img_compare(img1, img2)
+            print('check test 3', check)
+            if check < 650000:
+                print('\033[91mfail test 3')
+                print('\033[00m')
+                return False
+            else:
+                print('\033[92m pass test 3')
+                print('\033[00m')
+                return True
+
+    def test_4(self):
+        self.reset_params()
+        self.params.seed = 3493545648 #self.get_new_seed()
+        self.params.use_init = True
+        self.params.init_image = 'plugins/autotest/expected/test_2/result_1.png'
+        self.params.strength = 0.9
+        self.params.prompts = 'oil on canvas'
+        self.params.outdir = os.path.join(self.image_out_dir, 'test_4')
+        self.clean_dir(self.params.outdir)
+        os.makedirs(self.params.outdir, exist_ok=True)
+        self.params.save_settings = False
+        self.run_it()
+        files = self.get_files(self.params.outdir)
+        if len(files) > 0:
+            img1 = files[0]
+            img2 = 'plugins/autotest/expected/test_4/result_1.png'
+            check = img_compare(img1, img2)
+            print('check test 3', check)
+            if check < 650000:
+                print('\033[91mfail test 4')
+                print('\033[00m')
+                return False
+            else:
+                print('\033[92m pass test 4')
+                print('\033[00m')
+                return True
+
+    def test_5(self):
+        self.reset_params()
+        self.params.seed = 3493545648 #self.get_new_seed()
+        #self.params.init_image = 'plugins/autotest/expected/test_1/result_1.png'
+        self.params.prompts = 'oil on canvas'
+        self.params.outdir = os.path.join(self.image_out_dir, 'test_4')
+        self.params.max_frames = 2
+        self.params.animation_mode ='2D'
+        self.clean_dir(self.params.outdir)
+        os.makedirs(self.params.outdir, exist_ok=True)
+        self.params.save_settings = False
+        self.run_it()
+        files = self.get_files(self.params.outdir)
+        if len(files) > 0:
+            img1 = files[0]
+            img2 = 'plugins/autotest/expected/test_3/result_1.png'
+            check = img_compare(img1, img2)
+            print('check test 3', check)
+            if check < 650000:
+                print('\033[91mfail test 5')
+                print('\033[00m')
+                return False
+            else:
+                print('\033[92m pass test 5')
+                print('\033[00m')
+                return True
+
+
+    def run_all_tests(self):
+        check = self.test_1()
+        if check:
+            check = self.test_2()
+        if check:
+            check = self.test_3()
+        if check:
+            check = self.test_4()
 
 
     def run_this_test(self):

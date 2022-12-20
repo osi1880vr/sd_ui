@@ -65,6 +65,9 @@ class Deforum_UI(QObject):
         gs.slerp_angle = self.parent.widgets[self.parent.current_widget].w.slerp_angle.value()
         gs.aesthetic_text_negative = self.parent.widgets[self.parent.current_widget].w.aesthetic_text_negative.toPlainText()
 
+        #not aesthetics but gs global
+        gs.karras = self.parent.widgets[self.parent.current_widget].w.karras.isChecked()
+
 
 
     def run_it(self):
@@ -360,8 +363,8 @@ class Deforum_UI(QObject):
                         if attrib2 == 'lr': gs.lr = float(j)
                     if self.params.init_image is not None:
                         if os.path.isdir(self.params.init_image) and self.params.animation_mode == 'None':
-                            print('Batch Directory found')
                             self.params.max_frames = 2
+
                     self.run_it()
                     if plotting:
                         all_images.append(T.functional.pil_to_tensor(self.parent.image))
