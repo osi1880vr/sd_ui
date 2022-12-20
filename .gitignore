@@ -175,3 +175,4 @@ data/output/*
 tmp/*
 /data/diffuserModels/
 /cache/
+/.idea

@@ -126,7 +126,108 @@ class Deforum_UI(QObject):
                                          hires=self.params.hires,
                                          prompt_weighting=self.params.prompt_weighting,
                                          normalize_prompt_weights=self.params.normalize_prompt_weights,
-                                         lowmem=self.params.lowmem)
+                                         lowmem=self.params.lowmem,
+
+                                         keyframes=self.params.keyframes,
+
+                                         dynamic_threshold=self.params.dynamic_threshold,
+                                         static_threshold=self.params.static_threshold,
+                                         # @markdown **Save & Display Settings**
+                                         display_samples=self.params.display_samples,  # @param {type:"boolean"}
+                                         save_sample_per_step=self.params.save_sample_per_step,  # @param {type:"boolean"}
+                                        # normalize_prompt_weights=True,  # @param {type:"boolean"}
+                                         log_weighted_subprompts=self.params.log_weighted_subprompts,  # @param {type:"boolean"}
+                                         adabins=self.params.adabins,
+
+                                         batch_name=self.params.batch_name,  # @param {type:"string"}
+                                         filename_format=self.params.filename_format,
+                                         # @param ["{timestring}_{index}_{seed}.png","{timestring}_{index}_{prompt}.png"]
+
+                                         # Whiter areas of the mask are areas that change more
+                                         use_mask=self.params.use_mask,  # @param {type:"boolean"}
+                                         use_alpha_as_mask=self.params.use_alpha_as_mask,  # use the alpha channel of the init image as the mask
+                                         mask_file=self.params.mask_file,  # @param {type:"string"}
+                                         invert_mask=self.params.invert_mask,  # @param {type:"boolean"}
+                                         # Adjust mask image, 1.0 is no adjustment. Should be positive numbers.
+                                         mask_brightness_adjust=self.params.mask_brightness_adjust,  # @param {type:"number"}
+                                         mask_contrast_adjust=self.params.mask_contrast_adjust,  # @param {type:"number"}
+                                         # Overlay the masked image at the end of the generation so it does not get degraded by encoding and decoding
+                                         overlay_mask=self.params.overlay_mask,  # {type:"boolean"}
+                                         # Blur edges of final overlay mask, if used. Minimum = 0 (no blur)
+                                         mask_overlay_blur=self.params.mask_overlay_blur,  # {type:"number"}
+
+                                         precision=self.params.precision,
+
+                                         # prompt="",
+                                         timestring=self.params.timestring,
+                                         init_latent=self.params.init_latent,
+                                         init_sample=self.params.init_sample,
+                                         init_c=self.params.init_c,
+
+                                         # Anim Args
+
+                                         # @param ['None', '2D', '3D', 'Video Input', 'Interpolation'] {type:'string'}
+
+                                         border=self.params.border,  # @param ['wrap', 'replicate'] {type:'string'}
+                                         angle=self.params.angle,  # @param {type:"string"}
+                                         zoom=self.params.zoom,  # @param {type:"string"}
+                                         translation_x=self.params.translation_x,  # @param {type:"string"}
+                                         translation_y=self.params.translation_y,  # @param {type:"string"}
+                                         translation_z=self.params.translation_z,  # @param {type:"string"}
+                                         rotation_3d_x=self.params.rotation_3d_x,  # @param {type:"string"}
+                                         rotation_3d_y=self.params.rotation_3d_y,  # @param {type:"string"}
+                                         rotation_3d_z=self.params.rotation_3d_z,  # @param {type:"string"}
+                                         flip_2d_perspective=self.params.flip_2d_perspective,  # @param {type:"boolean"}
+                                         perspective_flip_theta=self.params.perspective_flip_theta,  # @param {type:"string"}
+                                         perspective_flip_phi=self.params.perspective_flip_phi,  # @param {type:"string"}
+                                         perspective_flip_gamma=self.params.perspective_flip_gamma,  # @param {type:"string"}
+                                         perspective_flip_fv=self.params.perspective_flip_fv,  # @param {type:"string"}
+                                         noise_schedule=self.params.noise_schedule,  # @param {type:"string"}
+                                         strength_schedule=self.params.strength_schedule,  # @param {type:"string"}
+                                         contrast_schedule=self.params.contrast_schedule,  # @param {type:"string"}
+                                         # @markdown ####**Coherence:**
+                                         color_coherence=self.params.color_coherence,
+                                         diffusion_cadence=self.params.diffusion_cadence,  # @param ['1','2','3','4','5','6','7','8'] {type:'string'}
+
+                                         # @param ['None', 'Match Frame 0 HSV', 'Match Frame 0 LAB', 'Match Frame 0 RGB'] {type:'string'}
+
+                                         # @markdown ####**3D Depth Warping:**
+                                         use_depth_warping=self.params.use_depth_warping,  # @param {type:"boolean"}
+                                         midas_weight=self.params.midas_weight,  # @param {type:"number"}
+                                         near_plane=self.params.near_plane,
+                                         far_plane=self.params.far_plane,
+                                         fov=self.params.fov,  # @param {type:"number"}
+                                         padding_mode=self.params.padding_mode,  # @param ['border', 'reflection', 'zeros'] {type:'string'}
+                                         sampling_mode=self.params.sampling_mode,  # @param ['bicubic', 'bilinear', 'nearest'] {type:'string'}
+                                         save_depth_maps=self.params.save_depth_maps,  # @param {type:"boolean"}
+
+                                         # @markdown ####**Video Input:**
+                                         video_init_path=self.params.video_init_path,  # @param {type:"string"}
+                                         extract_nth_frame=self.params.extract_nth_frame,  # @param {type:"number"}
+                                         overwrite_extracted_frames=self.params.overwrite_extracted_frames,  # @param {type:"boolean"}
+                                         use_mask_video=self.params.use_mask_video,  # @param {type:"boolean"}
+                                         video_mask_path=self.params.video_mask_path,  # @param {type:"string"}
+
+                                         # @markdown ####**Interpolation:**
+                                         interpolate_key_frames=self.params.interpolate_key_frames,  # @param {type:"boolean"}
+                                         interpolate_x_frames=self.params.interpolate_x_frames,  # @param {type:"number"}
+
+                                         # @markdown ####**Resume Animation:**
+                                         resume_from_timestring=self.params.resume_from_timestring,  # @param {type:"boolean"}
+                                         resume_timestring=self.params.resume_timestring,
+                                         # prev_sample=None,
+                                         clear_latent=self.params.clear_latent,
+                                         clear_sample=self.params.clear_sample,
+                                         shouldStop=self.params.shouldStop,
+                                         # keys={}
+                                         cpudepth=self.params.cpudepth,
+                                         # Adjust mask image, 1.0 is no adjustment. Should be positive numbers.
+                                         skip_video_for_run_all=self.params.skip_video_for_run_all,
+                                         prompt=self.params.prompt,
+                                         #use_hypernetwork=None,
+                                         apply_strength=self.params.apply_strength,
+                                         apply_circular=self.params.apply_circular
+                                         )
 
     def set_multi_dim_seed(self):
         if self.params.multi_dim_seed_mode == 'iter':
