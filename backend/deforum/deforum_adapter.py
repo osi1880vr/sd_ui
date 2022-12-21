@@ -526,8 +526,8 @@ class DeforumSix:
                         apply_circular=False,
                         lowmem=False
                         ):
-        #if gs.system.xformer == True:
-        #    backend.hypernetworks.modules.sd_hijack.apply_optimizations()
+        if gs.system.xformer == True:
+            backend.hypernetworks.modules.sd_hijack.apply_optimizations()
         gs.system.device = choose_torch_device()
 
 
@@ -539,37 +539,18 @@ class DeforumSix:
         print(f'-            hires: {hires}                                    ')
         print(f'-                                                              ')
 
-
-
-        #print(f'animation mode: {animation_mode}')
-
         if precision == 'autocast' and device != "cpu":
             precision_scope = autocast
         else:
             precision_scope = nullcontext
 
-
         hijack_deforum.deforum_hijack()
 
         [args, anim_args, root] = prepare_args(locals())
+
         root.device = self.device
         device = self.device
-        for key, value in anim_args.__dict__.items():
-            try:
-                anim_args.__dict__[key] = self.parent.params.__dict__[key]
-                print(f"settings {key} from {value} to {self.parent.params.__dict__[key]}")
-            except:
-                pass
-        for key, value in args.__dict__.items():
-            try:
-                args.__dict__[key] = self.parent.params.__dict__[key]
-            except:
-                pass
-        print(args.make_grid)
-        print(self.parent.params.make_grid)
-        #if args.seamless == False and self.prev_seamless == True:
-        #    self.prev_seamless = False
-        #    model_killer()
+
         if lowmem == True:
             print(f'-                 Low Memory Mode                             ')
             if "sd" in gs.models:
@@ -592,38 +573,18 @@ class DeforumSix:
             if check == -1:
                 return check
 
-
-
         if gs.diffusion.selected_hypernetwork != 'None':
             hypernetwork.load_hypernetwork(gs.diffusion.selected_hypernetwork)
             hypernetwork.apply_strength(apply_strength)                          #1.0, "Hypernetwork strength", gr.Slider, {"minimum": 0.0, "maximum": 1.0, "step": 0.001}),
             gs.model_hijack.apply_circular(False)
             gs.model_hijack.clear_comments()
 
-        #W, H = map(lambda x: x - x % 64, (W, H))  # resize to integer multiple of 64
-
-
-
-
-        #if args.seamless == True and self.prev_seamless == False:
-
-        #print("Running Seamless sampling...")
         seamless = args.seamless
         seamless_axes = args.axis
         if lowmem == False:
             configure_model_padding(gs.models["sd"], seamless, seamless_axes)
         elif lowmem == True:
             configure_model_padding(gs.models["model"], seamless, seamless_axes)
-        #self.prev_seamless = True
-        """
-        for key, value in root.__dict__.items():
-            try:
-                root.__dict__[key] = self.parent.params.__dict__[key]
-            except:
-                pass"""
-
-        print('gs.aesthetic_weight', gs.aesthetic_weight)
-        print('gs.aesthetic_weight', gs.aesthetic_weight)
 
         if gs.diffusion.selected_aesthetic_embedding != 'None':
             gs.models["sd"].cond_stage_model.process_tokens.set_aesthetic_params(
@@ -647,7 +608,6 @@ class DeforumSix:
         root.models_path = 'models'
         root.output_path = args.outdir
         root.half_precision = True
-        #Mod 2, animation prompt parsing
 
         if anim_args.animation_mode != 'None':
             prompt_series = pd.Series([np.nan for a in range(max_frames)])
@@ -694,10 +654,6 @@ class DeforumSix:
         # clean up unused memory
         torch_gc()
 
-        args.clip_prompt = ['test']
-
-        #print('anim_args.animation_mode', anim_args.animation_mode)
-        #print('anim_args.translation_x', anim_args.translation_x)
         paths = []
         # dispatch to appropriate renderer
         if anim_args.animation_mode == '2D' or anim_args.animation_mode == '3D':
@@ -720,12 +676,9 @@ class DeforumSix:
         path_name_modifier = "x0_pred"  # @param ["x0_pred","x"]
         file = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-
         skip_video_for_run_all = True if anim_args.max_frames < 2 else False
 
-        if skip_video_for_run_all == True:
-            print('Skipping video creation, uncheck skip_video_for_run_all if you want to run it')
-        else:
+        if skip_video_for_run_all is not True:
             import os
             import subprocess
             from base64 import b64encode
