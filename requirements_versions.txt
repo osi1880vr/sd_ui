@@ -127,3 +127,6 @@ gdown>=4.6.0
 torchdiffeq>=0.2.3
 fire>=0.5.0
 test-tube
+torchaudio==0.12.1
+pedalboard
+pydub
