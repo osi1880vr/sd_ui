@@ -1,5 +1,6 @@
 import io
 import os
+import random
 
 import PIL
 from PIL import Image
@@ -7,7 +8,12 @@ from PySide6 import QtUiTools
 from PySide6.QtCore import QObject, QFile
 
 from plugins.riffusion import audio
+from frontend.session_params import translate_sampler
+from backend.singleton import singleton
 
+from backend.torch_gc import torch_gc
+
+gs = singleton
 
 class Riffusion(QObject):
     def __init__(self, *args, **kwargs):
@@ -27,20 +33,38 @@ class aiPixelsPlugin():
         self.seed_image_dir = os.path.join(self.base_dir,'seed_images')
         self.mask_image_dir = os.path.join(self.base_dir,'mask_images')
         self.prepare_seed_lists()
-        self.params = self.parent.session_params.update_params()
+        self.params = self.parent.sessionparams.update_params()
         print(self.params)
 
     def initme(self):
         print("Initializing Riffusion")
-        os.makedirs('data/output/riffusion', exist_ok=True)
+        self.connection()
         self.riffusion.w.show()
+
+    def connection(self):
+        self.riffusion.w.run_riffusion.clicked.connect(self.run_riffusion)
+
+    def run_riffusion(self):
+        self.parent.plugin_thread(self.run_riffusion_thread)
+
 
     def prepare_seed_lists(self):
         self.seed_images = self.get_file_names(self.seed_image_dir)
         self.mask_images = self.get_file_names(self.mask_image_dir)
         self.riffusion.w.selected_seed_image.addItems(self.seed_images)
         self.riffusion.w.selected_mask_image.addItems(self.mask_images)
-
+        files = os.listdir(gs.system.models_path)
+        files = [f for f in files if os.path.isfile(gs.system.models_path+'/'+f)] #Filtering only the files.
+        model_items = files
+        for model in files:
+            if '.ckpt' in model or 'safetensors' in model:
+                self.riffusion.w.selected_model.addItem(model)
+        files = os.listdir(gs.system.custom_models_dir)
+        files = [f for f in files if os.path.isfile(gs.system.custom_models_dir + '/' +f)] #Filtering only the files.
+        model_items.append(files)
+        for model in files:
+            if '.ckpt' in model or 'safetensors' in model:
+                self.riffusion.w.selected_model.addItem('custom/' + model)
 
     def image_bytes_from_image(self,image: PIL.Image, mode: str = "PNG") -> io.BytesIO:
         """
@@ -52,12 +76,14 @@ class aiPixelsPlugin():
         return image_bytes
 
     def create_audio(self,image):
-
         image = Image.open(image)
         # Reconstruct audio from the image
         wav_bytes, duration_s = audio.wav_bytes_from_spectrogram_image(image)
+        newFile = open(os.path.join(self.audio_out,"filename.wav"), "ab")
+        newFile.write(wav_bytes.read())
+        newFile.close()
         mp3_bytes = audio.mp3_bytes_from_wav_bytes(wav_bytes)
-        newFile = open("filename.mp3", "ab")
+        newFile = open(os.path.join(self.audio_out,"filename.mp3"), "ab")
         newFile.write(mp3_bytes.read())
         newFile.close()
 
@@ -71,11 +97,70 @@ class aiPixelsPlugin():
         return[os.path.join(dp, f) for dp, dn, filenames in os.walk(path) for f in filenames if os.path.splitext(f)[1] == '.png']
 
 
-    def run_riffusion(self):
-        self.params = self.parent.session_params.update_params()
+    def create_output_folder(self):
+        os.makedirs(self.riffusion.w.outdir.text(), exist_ok=True)
+        self.audio_out = os.path.join(self.riffusion.w.outdir.text(),'img2aud')
+        os.makedirs(self.audio_out, exist_ok=True)
+        self.spectrogram_out = os.path.join(self.riffusion.w.outdir.text(),'txt2spc')
+        os.makedirs(self.audio_out, exist_ok=True)
 
 
-        files = self.get_files('images')
+    def set_riffusion_params(self):
+        new_model = os.path.join(gs.system.models_path,self.riffusion.w.selected_model.currentText())
+        gs.system.sd_model_file = new_model
+        self.params.sampler = translate_sampler(self.riffusion.w.sampler.currentText())
+        self.params.seed = random.randint(0, 2 ** 32 - 1) if self.riffusion.w.seed.text() == '' else int(
+            self.riffusion.w.seed.text())
+        self.params.steps = self.riffusion.w.steps.value()
+        self.params.scale = self.riffusion.w.scale.value()
+        self.params.strength = self.riffusion.w.strength.value()
+        self.params.ddim_eta = self.riffusion.w.ddim_eta.value()
+        self.params.save_settings = self.riffusion.w.save_settings.isChecked()
+        self.params.show_sample_per_step = self.riffusion.w.show_sample_per_step.isChecked()
+        self.params.hires = self.riffusion.w.hires.isChecked()
+        gs.karras = self.riffusion.w.karras.isChecked()
+        self.params.seamless = self.riffusion.w.seamless.isChecked()
+        self.params.axis = self.riffusion.w.axis.currentText()
+        self.params.use_alpha_as_mask = self.riffusion.w.use_alpha_as_mask.isChecked()
+        self.params.invert_mask = self.riffusion.w.invert_mask.isChecked()
+        self.params.overlay_mask = self.riffusion.w.overlay_mask.isChecked()
+        self.params.init_image = os.path.join(self.seed_image_dir,self.riffusion.w.selected_seed_image.currentText())
+        self.params.mask_file = os.path.join(self.mask_image_dir,self.riffusion.w.selected_mask_image.currentText())
+        self.params.outdir = self.spectrogram_out
+        self.params.n_batch = 1
+        self.params.n_samples = 1
+        self.params.max_frames = self.riffusion.w.n_batch.value()
+        self.params.animation_mode = 'Interpolation'
+        self.params.interpolate_x_frames = self.riffusion.w.n_batch.value()
+        self.params.interpolate_key_frames = True
+
+
+
+    def set_prompt_inbetweens(self):
+        prompts = ''
+        keyframes = ''
+        for i in range(0 , self.riffusion.w.n_batch.value()):
+            if i < self.riffusion.w.n_batch.value()-1:
+                prompts += f'{self.riffusion.w.prompt.toPlainText()}\n'
+                self.params.keyframes += f'{str(i*self.riffusion.w.n_batch.value())}\n'
+            else:
+                prompts += f'{self.riffusion.w.prompt.toPlainText()}'
+                self.params.keyframes += f'{str(i*self.riffusion.w.n_batch.value())}'
+        self.params.prompts = prompts
+        print('self.params.prompts',self.params.prompts)
+
+    def run_riffusion_thread(self, progress_callback=None):
+        print('Start riffusion')
+        self.create_output_folder()
+        self.params = self.parent.sessionparams.update_params()
+        self.set_prompt_inbetweens()
+        self.params.use_init = True
+        self.set_riffusion_params()
+        #for i in range(0 , self.riffusion.w.n_batch.value()):
+        self.run_it()
+        self.params.init_image = gs.temppath # filename of the last produced image
+
+        files = self.get_files(self.spectrogram_out)
         for image in files:
             self.create_audio(image)
 
@@ -83,7 +168,7 @@ class aiPixelsPlugin():
 
 
     def run_it(self):
-        self.parent.deforum_six.run_deforum_six(W=int(self.params.W),
+        self.parent.deforum_ui.deforum_six.run_deforum_six(W=int(self.params.W),
                                          H=int(self.params.H),
                                          seed=int(self.params.seed) if self.params.seed != '' else self.params.seed,
                                          sampler=str(self.params.sampler),

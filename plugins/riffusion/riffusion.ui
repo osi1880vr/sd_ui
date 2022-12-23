@@ -97,14 +97,7 @@
               <item row="1" column="0">
                <widget class="QLabel" name="label">
                 <property name="text">
-                 <string>Propmpt</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QPushButton" name="run_riffusion">
-                <property name="text">
-                 <string>Run Riffusion</string>
+                 <string>Prompt</string>
                 </property>
                </widget>
               </item>
@@ -115,11 +108,18 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="0" colspan="2">
-               <widget class="QPlainTextEdit" name="prompt"/>
+              <item row="0" column="0">
+               <widget class="QPushButton" name="run_riffusion">
+                <property name="text">
+                 <string>Run Riffusion</string>
+                </property>
+               </widget>
               </item>
               <item row="4" column="0" colspan="2">
-               <widget class="QPlainTextEdit" name="neg_prompt"/>
+               <widget class="QTextEdit" name="neg_prompt"/>
+              </item>
+              <item row="2" column="0" colspan="2">
+               <widget class="QTextEdit" name="prompt"/>
               </item>
              </layout>
             </widget>
@@ -141,21 +141,21 @@
                </widget>
               </item>
               <item row="3" column="0">
-               <widget class="QCheckBox" name="use_alpha_as_mask_2">
+               <widget class="QCheckBox" name="use_alpha_as_mask">
                 <property name="text">
                  <string>Use alpha as mask</string>
                 </property>
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QCheckBox" name="invert_mask_2">
+               <widget class="QCheckBox" name="invert_mask">
                 <property name="text">
                  <string>Invert mask</string>
                 </property>
                </widget>
               </item>
               <item row="1" column="0">
-               <widget class="QCheckBox" name="checkBox">
+               <widget class="QCheckBox" name="use_mask">
                 <property name="text">
                  <string>Use mask</string>
                 </property>
@@ -169,7 +169,7 @@
                </widget>
               </item>
               <item row="3" column="2">
-               <widget class="QCheckBox" name="overlay_mask_2">
+               <widget class="QCheckBox" name="overlay_mask">
                 <property name="text">
                  <string>Overlay Mask</string>
                 </property>
@@ -208,21 +208,21 @@
               <property name="spacing">
                <number>5</number>
               </property>
-              <item row="21" column="0" colspan="2">
+              <item row="22" column="0" colspan="2">
                <widget class="QCheckBox" name="show_output_setup">
                 <property name="text">
                  <string>Output Options</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="0">
+              <item row="8" column="0">
                <widget class="QLabel" name="label_72">
                 <property name="text">
                  <string>Model</string>
                 </property>
                </widget>
               </item>
-              <item row="16" column="2">
+              <item row="17" column="2">
                <widget class="QDoubleSpinBox" name="ddim_eta">
                 <property name="maximum">
                  <double>100.000000000000000</double>
@@ -232,41 +232,41 @@
                 </property>
                </widget>
               </item>
-              <item row="12" column="3">
+              <item row="13" column="3">
                <widget class="QCheckBox" name="show_sample_per_step">
                 <property name="text">
                  <string>Live</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="2" colspan="4">
+              <item row="8" column="2" colspan="4">
                <widget class="QComboBox" name="selected_model"/>
               </item>
-              <item row="12" column="0">
+              <item row="13" column="0">
                <widget class="QLabel" name="label_20">
                 <property name="text">
                  <string>Batch</string>
                 </property>
                </widget>
               </item>
-              <item row="14" column="3" colspan="2">
+              <item row="15" column="3" colspan="2">
                <widget class="QCheckBox" name="hires">
                 <property name="text">
                  <string>HiRes Mode</string>
                 </property>
                </widget>
               </item>
-              <item row="11" column="2" colspan="3">
+              <item row="12" column="2" colspan="3">
                <widget class="QLineEdit" name="seed"/>
               </item>
-              <item row="14" column="0">
+              <item row="15" column="0">
                <widget class="QLabel" name="label_21">
                 <property name="text">
                  <string>Strength</string>
                 </property>
                </widget>
               </item>
-              <item row="12" column="2">
+              <item row="13" column="2">
                <widget class="QSpinBox" name="n_batch">
                 <property name="minimum">
                  <number>1</number>
@@ -276,14 +276,14 @@
                 </property>
                </widget>
               </item>
-              <item row="16" column="0">
+              <item row="17" column="0">
                <widget class="QLabel" name="label_15">
                 <property name="text">
                  <string>DDIM ETA</string>
                 </property>
                </widget>
               </item>
-              <item row="11" column="6">
+              <item row="12" column="6">
                <widget class="QComboBox" name="seed_behavior">
                 <item>
                  <property name="text">
@@ -302,21 +302,21 @@
                 </item>
                </widget>
               </item>
-              <item row="14" column="5">
+              <item row="15" column="5">
                <widget class="QCheckBox" name="seamless">
                 <property name="text">
                  <string>Seamless</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="0">
+              <item row="7" column="0">
                <widget class="QLabel" name="label_10">
                 <property name="text">
                  <string>Sampler:</string>
                 </property>
                </widget>
               </item>
-              <item row="6" column="6">
+              <item row="7" column="6">
                <widget class="QPushButton" name="update_models">
                 <property name="minimumSize">
                  <size>
@@ -329,28 +329,28 @@
                 </property>
                </widget>
               </item>
-              <item row="11" column="5">
+              <item row="12" column="5">
                <widget class="QLabel" name="label_14">
                 <property name="text">
                  <string>Mode</string>
                 </property>
                </widget>
               </item>
-              <item row="12" column="5">
+              <item row="13" column="5">
                <widget class="QCheckBox" name="karras">
                 <property name="text">
                  <string>Karras</string>
                 </property>
                </widget>
               </item>
-              <item row="7" column="6">
+              <item row="8" column="6">
                <widget class="QPushButton" name="load_model">
                 <property name="text">
                  <string>Load Model</string>
                 </property>
                </widget>
               </item>
-              <item row="22" column="0" colspan="7">
+              <item row="23" column="0" colspan="7">
                <widget class="QFrame" name="output_values">
                 <property name="frameShape">
                  <enum>QFrame::StyledPanel</enum>
@@ -408,17 +408,10 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="6" column="1">
-                  <widget class="QCheckBox" name="save_samples">
-                   <property name="text">
-                    <string>Save Samples</string>
-                   </property>
-                  </widget>
-                 </item>
                 </layout>
                </widget>
               </item>
-              <item row="14" column="2">
+              <item row="15" column="2">
                <widget class="QDoubleSpinBox" name="strength">
                 <property name="maximum">
                  <double>1.000000000000000</double>
@@ -426,9 +419,12 @@
                 <property name="singleStep">
                  <double>0.010000000000000</double>
                 </property>
+                <property name="value">
+                 <double>0.300000000000000</double>
+                </property>
                </widget>
               </item>
-              <item row="6" column="2" colspan="4">
+              <item row="7" column="2" colspan="4">
                <widget class="QComboBox" name="sampler">
                 <item>
                  <property name="text">
@@ -497,7 +493,7 @@
                 </item>
                </widget>
               </item>
-              <item row="16" column="6">
+              <item row="17" column="6">
                <widget class="QComboBox" name="axis">
                 <item>
                  <property name="text">
@@ -516,17 +512,51 @@
                 </item>
                </widget>
               </item>
-              <item row="16" column="5">
+              <item row="17" column="5">
                <widget class="QLabel" name="label_74">
                 <property name="text">
                  <string>Axis</string>
                 </property>
                </widget>
               </item>
-              <item row="11" column="0">
+              <item row="12" column="0">
                <widget class="QLabel" name="label_13">
                 <property name="text">
                  <string>Seed</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QLabel" name="label_5">
+                <property name="text">
+                 <string>Steps</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="2">
+               <widget class="QSpinBox" name="steps">
+                <property name="maximum">
+                 <number>250</number>
+                </property>
+                <property name="value">
+                 <number>20</number>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="4">
+               <widget class="QLabel" name="label_6">
+                <property name="text">
+                 <string>CFG</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="6">
+               <widget class="QDoubleSpinBox" name="scale">
+                <property name="maximum">
+                 <double>30.000000000000000</double>
+                </property>
+                <property name="value">
+                 <double>7.500000000000000</double>
                 </property>
                </widget>
               </item>
