@@ -465,7 +465,7 @@ class DeforumSix:
                         save_depth_maps=False,  # @param {type:"boolean"}
 
                         # @markdown ####**Video Input:**
-                        video_init_path='/content/video_in.mp4',  # @param {type:"string"}
+                        video_init_path='',  # @param {type:"string"}
                         extract_nth_frame=1,  # @param {type:"number"}
                         overwrite_extracted_frames=True,  # @param {type:"boolean"}
                         use_mask_video=False,  # @param {type:"boolean"}
@@ -609,6 +609,9 @@ class DeforumSix:
         root.output_path = args.outdir
         root.half_precision = True
 
+        if video_init_path != '':
+            anim_args.animation_mode = 'Video Input'
+
         if anim_args.animation_mode != 'None':
             prompt_series = pd.Series([np.nan for a in range(max_frames)])
             if keyframes == '':
@@ -645,6 +648,8 @@ class DeforumSix:
             args.sampler = 'klms'
         if args.sampler != 'ddim':
             args.ddim_eta = 0
+
+
 
         if anim_args.animation_mode == 'None':
             anim_args.max_frames = 1

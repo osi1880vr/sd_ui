@@ -99,6 +99,9 @@ def render_image_batch(args, prompts, root, image_callback=None, step_callback=N
     else:
         init_array = [""]
 
+
+    print('args.use_init', args.use_init)
+    print('init_array', init_array)
     # when doing large batches don't flood browser with images
     clear_between_batches = args.n_batch >= 32
     fpW = args.W
@@ -241,6 +244,8 @@ def render_animation(args, anim_args, animation_prompts, root, image_callback=No
 
     # expand prompts out to per-frame
     prompt_series = pd.Series([np.nan for a in range(anim_args.max_frames)])
+    print('prompt_series',prompt_series)
+    print('animation_prompts',animation_prompts)
     for i, prompt in animation_prompts.items():
         prompt_series[i] = prompt
     prompt_series = prompt_series.ffill().bfill()
@@ -443,7 +448,7 @@ def render_animation(args, anim_args, animation_prompts, root, image_callback=No
 
 def render_input_video(args, anim_args, animation_prompts, root, image_callback=None):
     # create a folder for the video input frames to live in
-    video_in_frame_path = os.path.join(args.outdir, 'inputframes')
+    video_in_frame_path = os.path.join(gs.system.vid2vid_out_dir, 'inputframes')
     os.makedirs(video_in_frame_path, exist_ok=True)
 
     # save the video frames from input video
